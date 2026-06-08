@@ -30,7 +30,50 @@ check_cmd() {
   fi
 }
 
-check_optional_path() {
+check_cmd_any() {
+  local label="$1"
+  local version_args="$2"
+  shift 2
+  local candidate
+  printf '%-14s' "$label"
+  for candidate in "$@"; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      local path
+      path="$(command -v "$candidate")"
+      local output
+      # shellcheck disable=SC2086
+      if output="$("$candidate" $version_args 2>&1)"; then
+        printf 'OK      %s (%s)\n' "$path" "$candidate"
+        printf '%s\n' "$output" | sed 's/^/  /' | sed -n '1,3p'
+        return 0
+      fi
+    fi
+  done
+  printf 'MISSING\n'
+  status=1
+}
+
+check_cmd_optional() {
+  local name="$1"
+  local version_args="${2:---version}"
+  printf '%-14s' "$name"
+  if command -v "$name" >/dev/null 2>&1; then
+    local path
+    path="$(command -v "$name")"
+    printf 'OK      %s\n' "$path"
+    if [ -n "$version_args" ]; then
+      # shellcheck disable=SC2086
+      if ! "$name" $version_args 2>&1 | sed 's/^/  /' | sed -n '1,3p'; then
+        printf '  version check failed\n'
+        status=1
+      fi
+    fi
+  else
+    printf 'OPTIONAL_MISSING\n'
+  fi
+}
+
+check_path_optional() {
   local label="$1"
   local path="$2"
   local version_args="${3:---version}"
@@ -40,8 +83,7 @@ check_optional_path() {
     # shellcheck disable=SC2086
     "$path" $version_args 2>&1 | sed 's/^/  /' | sed -n '1,3p'
   else
-    printf 'MISSING %s\n' "$path"
-    status=1
+    printf 'OPTIONAL_MISSING %s\n' "$path"
   fi
 }
 
@@ -63,25 +105,35 @@ check_cmd code --version
 check_cmd node --version
 check_cmd npm --version
 check_cmd pnpm --version
-check_cmd yarn --version
-check_cmd python3 --version
-check_cmd pip3 --version
-check_cmd jq --version
+check_cmd_optional yarn --version
+check_cmd_any python --version python3 python py
+check_cmd_any pip --version pip3 pip
+check_cmd_optional jq --version
 check_cmd rg --version
 check_cmd curl --version
 check_cmd docker --version
 
 print_section "Codex CLI and MCP"
-check_cmd codex --version
-check_optional_path codex-bin /opt/codex/bin/codex --version
-if [ -x /opt/codex/bin/codex ]; then
-  /opt/codex/bin/codex mcp list 2>&1 | sed -n '1,40p' || status=1
-fi
-if [ -r /opt/codex/config.toml ]; then
-  printf '\n/opt/codex/config.toml is readable.\n'
-  sed -n '1,80p' /opt/codex/config.toml
+codex_cmd=""
+if command -v codex >/dev/null 2>&1; then
+  check_cmd codex --version
+  codex_cmd="$(command -v codex)"
+elif [ -x /opt/codex/bin/codex ]; then
+  check_path_optional codex-bin /opt/codex/bin/codex --version
+  codex_cmd="/opt/codex/bin/codex"
 else
-  printf '\n/opt/codex/config.toml is not readable.\n'
+  printf '%-14sMISSING\n' "codex"
+  status=1
+fi
+if [ -n "$codex_cmd" ]; then
+  "$codex_cmd" mcp list 2>&1 | sed -n '1,60p' || status=1
+fi
+if [ -r "$HOME/.codex/config.toml" ]; then
+  printf '\n~/.codex/config.toml is readable.\n'
+elif [ -r /opt/codex/config.toml ]; then
+  printf '\n/opt/codex/config.toml is readable.\n'
+else
+  printf '\nNo Codex config file found at ~/.codex/config.toml or /opt/codex/config.toml.\n'
   status=1
 fi
 
@@ -102,7 +154,7 @@ fi
 print_section "Network reachability"
 for url in https://github.com https://api.github.com; do
   printf '%s\n' "$url"
-  if curl -I -L --max-time 10 "$url" 2>&1 | sed -n '1,12p'; then
+  if curl -sS -I -L --max-time 10 "$url" 2>&1 | sed -n '1,12p'; then
     :
   else
     status=1
