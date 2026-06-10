@@ -15,9 +15,12 @@ import json
 import re
 import sys
 import textwrap
+import urllib.error
+import urllib.request
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
+from html import unescape
 from typing import Iterable
 from xml.etree import ElementTree as ET
 
@@ -49,6 +52,21 @@ class ExtractedDocument:
 
 
 @dataclass
+class UrlSummary:
+    """Text and diagnostics extracted from a reference URL."""
+
+    url: str
+    status: str
+    title: str = ""
+    text_preview: str = ""
+    error: str = ""
+
+    @property
+    def is_accessible(self) -> bool:
+        return self.status == "ok"
+
+
+@dataclass
 class EvidenceSummary:
     """Summarized score/evidence information used in the final draft."""
 
@@ -57,6 +75,7 @@ class EvidenceSummary:
     numeric_values: list[float] = field(default_factory=list)
     video_links: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    reference_urls: list[UrlSummary] = field(default_factory=list)
 
     @property
     def average(self) -> float | None:
@@ -153,6 +172,58 @@ def _video_links_from_text(text: str) -> list[str]:
     return re.findall(r"https?://\S*(?:youtube|youtu\.be|drive\.google|facebook|tiktok|vimeo)\S*", text, re.I)
 
 
+def _strip_html(html: str) -> str:
+    html = re.sub(r"(?is)<(script|style|noscript).*?>.*?</\1>", " ", html)
+    html = re.sub(r"(?is)<br\s*/?>", "\n", html)
+    html = re.sub(r"(?is)</(p|div|li|h[1-6]|tr)>", "\n", html)
+    text = re.sub(r"(?is)<.*?>", " ", html)
+    return re.sub(r"\s+", " ", unescape(text)).strip()
+
+
+def fetch_url_summary(url: str, timeout: int = 20) -> UrlSummary:
+    """Fetch a public URL and keep a compact text summary for the record."""
+    request = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 (compatible; Kru-Toffy-LessonRecord/1.0)",
+            "Accept": "text/html,text/plain,application/json;q=0.8,*/*;q=0.5",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 - teacher-provided URL.
+            raw = response.read(300_000)
+            content_type = response.headers.get("content-type", "")
+            charset_match = re.search(r"charset=([^;]+)", content_type, re.I)
+            encoding = charset_match.group(1) if charset_match else "utf-8"
+            html = raw.decode(encoding, errors="replace")
+    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        return UrlSummary(url=url, status="error", error=str(exc))
+
+    title_match = re.search(r"(?is)<title[^>]*>(.*?)</title>", html)
+    title = re.sub(r"\s+", " ", unescape(title_match.group(1))).strip() if title_match else ""
+    if "cf_chl" in html or "challenge-platform" in html or title.lower() == "just a moment...":
+        return UrlSummary(url=url, status="error", title=title, error="หน้าเว็บมีระบบป้องกันบอต/Cloudflare")
+    if "chatgpt.com" in url and "authStatus" in html and "statsigPayload" in html:
+        return UrlSummary(url=url, status="error", title=title, error="ลิงก์ ChatGPT ไม่เปิดเผยข้อความบทสนทนาให้ดึงอัตโนมัติ")
+
+    text = _strip_html(html)
+    return UrlSummary(url=url, status="ok", title=title, text_preview=text[:1500])
+
+
+def summarize_reference_urls(urls: Iterable[str], summary: EvidenceSummary) -> None:
+    for url in urls:
+        if not url:
+            continue
+        url_summary = fetch_url_summary(url)
+        summary.reference_urls.append(url_summary)
+        summary.files.append(url)
+        if url_summary.is_accessible:
+            summary.numeric_values.extend(_numbers_from_text(url_summary.text_preview))
+            summary.video_links.extend(_video_links_from_text(url_summary.text_preview))
+        else:
+            summary.notes.append(f"อ่านลิงก์ {url} ไม่สำเร็จ: {url_summary.error}")
+
+
 def summarize_csv(path: Path, summary: EvidenceSummary) -> None:
     with path.open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.reader(handle)
@@ -199,7 +270,7 @@ def summarize_xlsx(path: Path, summary: EvidenceSummary) -> None:
                     summary.video_links.extend(_video_links_from_text(joined))
 
 
-def summarize_evidence(paths: Iterable[Path]) -> EvidenceSummary:
+def summarize_evidence(paths: Iterable[Path], reference_urls: Iterable[str] = ()) -> EvidenceSummary:
     summary = EvidenceSummary()
     for path in paths:
         summary.files.append(str(path))
@@ -220,6 +291,7 @@ def summarize_evidence(paths: Iterable[Path]) -> EvidenceSummary:
                 summary.video_links.extend(_video_links_from_text(text))
         except Exception as exc:  # noqa: BLE001 - continue processing other evidence files.
             summary.notes.append(f"อ่านไฟล์ {path} ไม่สำเร็จ: {exc}")
+    summarize_reference_urls(reference_urls, summary)
     summary.video_links = sorted(set(summary.video_links))
     return summary
 
@@ -255,8 +327,17 @@ def build_record(sample: ExtractedDocument, lesson: ExtractedDocument, evidence:
 
     evidence_files = "\n".join(f"- {path}" for path in evidence.files) or "- (ยังไม่ได้แนบไฟล์หลักฐานเพิ่มเติม)"
     notes = "\n".join(f"- {note}" for note in evidence.notes) or "- ไม่มีข้อผิดพลาดจากการอ่านไฟล์หลักฐาน"
+    url_lines = []
+    for item in evidence.reference_urls:
+        if item.is_accessible:
+            title = f" ({item.title})" if item.title else ""
+            preview = item.text_preview or "ไม่มีข้อความตัวอย่าง"
+            url_lines.append(f"- {item.url}{title}: {preview[:500]}")
+        else:
+            url_lines.append(f"- {item.url}: ไม่สามารถอ่านเนื้อหาอัตโนมัติได้ ({item.error})")
+    url_block = "\n".join(url_lines) or "- ไม่ได้ระบุลิงก์อ้างอิงเพิ่มเติม"
 
-    return textwrap.dedent(
+    markdown = textwrap.dedent(
         f"""
         # บันทึกผลการจัดการเรียนรู้
 
@@ -266,12 +347,15 @@ def build_record(sample: ExtractedDocument, lesson: ExtractedDocument, evidence:
         ## 2. หลักฐานที่ใช้ประกอบการเขียนบันทึก
         {evidence_files}
 
-        ## 3. สรุปผลจากคะแนน ชิ้นงาน ใบงาน และวิดีโอการสอน
+        ## 3. ข้อมูลจากลิงก์อ้างอิง/บทสนทนา
+        {url_block}
+
+        ## 4. สรุปผลจากคะแนน ชิ้นงาน ใบงาน และวิดีโอการสอน
         - {score_line}
         - {video_line}
         - จำนวนแถว/ตารางข้อมูลที่ตรวจพบจากหลักฐาน: {evidence.row_count}
 
-        ## 4. บันทึกผลการจัดการเรียนรู้ (ฉบับร่าง)
+        ## 5. บันทึกผลการจัดการเรียนรู้ (ฉบับร่าง)
         ### ผลการจัดการเรียนรู้
         จากการจัดกิจกรรมการเรียนรู้ตามแผนการจัดการเรียนรู้ พบว่าผู้เรียนได้ฝึกคิด วิเคราะห์ และลงมือปฏิบัติกิจกรรมตามภาระงานที่กำหนด ผู้เรียนส่วนใหญ่สามารถอธิบายขั้นตอนการทำงาน แลกเปลี่ยนความคิดเห็น และสร้างชิ้นงาน/ใบงานได้สอดคล้องกับจุดประสงค์การเรียนรู้ โดยพิจารณาจากหลักฐานคะแนน ชิ้นงาน ใบงาน และคลิปวิดีโอการสอนที่แนบประกอบ
 
@@ -284,13 +368,14 @@ def build_record(sample: ExtractedDocument, lesson: ExtractedDocument, evidence:
         ### ข้อเสนอแนะเพื่อใช้ในแผนถัดไป
         ควรนำผลคะแนนและข้อสังเกตจากชิ้นงานมาแบ่งกลุ่มผู้เรียนตามระดับความพร้อม เพื่อออกแบบกิจกรรมเสริมสำหรับผู้เรียนที่ต้องการความช่วยเหลือ และกิจกรรมท้าทายสำหรับผู้เรียนที่ทำได้ตามเกณฑ์แล้ว
 
-        ## 5. รูปแบบ/ภาษาที่วิเคราะห์จากไฟล์ตัวอย่าง
+        ## 6. รูปแบบ/ภาษาที่วิเคราะห์จากไฟล์ตัวอย่าง
         {style_block}
 
-        ## 6. หมายเหตุจากการประมวลผลไฟล์
+        ## 7. หมายเหตุจากการประมวลผลไฟล์
         {notes}
         """
-    ).strip() + "\n"
+    )
+    return re.sub(r"(?m)^ {8}", "", markdown).strip() + "\n"
 
 
 def write_analysis_json(path: Path, sample: ExtractedDocument, lesson: ExtractedDocument, evidence: EvidenceSummary) -> None:
@@ -308,6 +393,16 @@ def write_analysis_json(path: Path, sample: ExtractedDocument, lesson: Extracted
             "maximum": evidence.maximum,
             "video_links": evidence.video_links,
             "notes": evidence.notes,
+            "reference_urls": [
+                {
+                    "url": item.url,
+                    "status": item.status,
+                    "title": item.title,
+                    "text_preview": item.text_preview,
+                    "error": item.error,
+                }
+                for item in evidence.reference_urls
+            ],
         },
     }
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -320,6 +415,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--sample", required=True, type=Path, help="ไฟล์ DOCX ตัวอย่าง/รายงานของครู")
     parser.add_argument("--lesson-plan", required=True, type=Path, help="ไฟล์ DOCX แผนการจัดการเรียนรู้ที่ต้องการเขียนบันทึก")
     parser.add_argument("--evidence", nargs="*", default=[], type=Path, help="ไฟล์คะแนน ใบงาน ชิ้นงาน ลิงก์วิดีโอ หรือหลักฐานเพิ่มเติม (.csv/.xlsx/.docx/.txt)")
+    parser.add_argument("--reference-url", nargs="*", default=[], help="ลิงก์อ้างอิงหรือบทสนทนาที่ต้องการวิเคราะห์ประกอบ")
     parser.add_argument("--output", default=Path("บันทึกผลการจัดการเรียนรู้.md"), type=Path, help="ไฟล์ Markdown ผลลัพธ์")
     parser.add_argument("--analysis-json", type=Path, help="บันทึกผลวิเคราะห์เป็น JSON เพิ่มเติม")
     return parser.parse_args(argv)
@@ -337,7 +433,7 @@ def main(argv: list[str] | None = None) -> int:
 
     sample = extract_docx(args.sample)
     lesson = extract_docx(args.lesson_plan)
-    evidence = summarize_evidence(args.evidence)
+    evidence = summarize_evidence(args.evidence, args.reference_url)
     draft = build_record(sample, lesson, evidence)
 
     args.output.write_text(draft, encoding="utf-8")
