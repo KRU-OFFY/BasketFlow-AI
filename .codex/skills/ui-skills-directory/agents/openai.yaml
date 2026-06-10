@@ -1,0 +1,6 @@
+interface:
+  display_name: "UI Skills Directory"
+  short_description: "Choose UI skills for frontend craft"
+  default_prompt: "Use $ui-skills-directory to pick the best UI quality workflow for this frontend task."
+policy:
+  allow_implicit_invocation: true
