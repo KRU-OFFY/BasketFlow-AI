@@ -1,2 +1,14 @@
+# Python
 __pycache__/
 *.py[cod]
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.vercel/
+*.tsbuildinfo
+
+# Environment
+.env
+.env*.local

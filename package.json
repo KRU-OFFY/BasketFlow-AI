@@ -1,0 +1,33 @@
+{
+  "name": "ai-product-review-video-bot",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "next lint",
+    "safety:test": "tsx -e \"import { runRuleBasedCompliance } from './lib/ai/compliance-checker'; const result = runRuleBasedCompliance({ script: 'สินค้านี้ใช้แล้วหายขาด เห็นผลทันที ปลอดภัย 100%' }); console.log(result.status); if (result.status !== 'BLOCK') process.exit(1);\""
+  },
+  "dependencies": {
+    "@supabase/ssr": "latest",
+    "@supabase/supabase-js": "latest",
+    "class-variance-authority": "latest",
+    "clsx": "latest",
+    "lucide-react": "latest",
+    "next": "^16.2.9",
+    "react": "latest",
+    "react-dom": "latest",
+    "tailwind-merge": "latest"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "tailwindcss": "latest",
+    "tsx": "^4.22.4",
+    "typescript": "latest"
+  }
+}

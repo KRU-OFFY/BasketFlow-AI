@@ -1,4 +1,4 @@
-name: Python checks
+name: App CI
 
 on:
   push:
@@ -15,16 +15,31 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
+
+      - name: Build Next.js app
+        run: npm run build
+
+      - name: Run safety smoke test
+        run: npm run safety:test
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Compile Python files
+      - name: Compile legacy Python files
         run: python -m py_compile Kru-Toffy/codex-python.py tests/test_codex_python.py
 
-      - name: Show CLI help
-        run: python Kru-Toffy/codex-python.py --help
-
-      - name: Run unit tests
+      - name: Run legacy Python unit tests
         run: python -m unittest discover -s tests -v

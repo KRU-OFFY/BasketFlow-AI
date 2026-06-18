@@ -1,50 +1,99 @@
-# AI
+# AI Product Review Video Bot
 
-[![Python checks](https://github.com/KRU-OFFY/AI/actions/workflows/python.yml/badge.svg)](https://github.com/KRU-OFFY/AI/actions/workflows/python.yml)
+[![App CI](https://github.com/KRU-OFFY/AI/actions/workflows/python.yml/badge.svg)](https://github.com/KRU-OFFY/AI/actions/workflows/python.yml)
 
-เครื่องมือในรีโปนี้ช่วยวิเคราะห์ไฟล์เอกสารประกอบการสอน เช่น ไฟล์ DOCX
-ตัวอย่างบันทึกผล/รายงานของครู ไฟล์ DOCX แผนการจัดการเรียนรู้ และไฟล์หลักฐานประกอบ
-เช่น คะแนนจากชิ้นงาน ใบงาน หรือข้อมูลลิงก์คลิปวิดีโอ เพื่อร่าง
-**บันทึกผลการจัดการเรียนรู้** เป็นไฟล์ Markdown ภาษาไทย
+MVP สำหรับ Shopee Affiliate creators ที่ต้องการสร้างโปรเจกต์วิดีโอรีวิวสินค้าด้วย AI แบบเป็นขั้นตอน ตั้งแต่ Login → Dashboard → Import Product → Brief → Script → Compliance → Media → Approval → Publishing Queue → Analytics → AI Logs
 
-## การใช้งาน
+## Tech Stack
 
-```bash
-python Kru-Toffy/codex-python.py \
-  --sample "รายงานผลลัพธ์ทางการเรียนของผู้เรียน ครูข้าวโพด.docx" \
-  --lesson-plan "แผนการจัดการเรียนรู้ วิทยาการคำนวณ ป.5 ต้นฉบับจริงทำใหม่ 2569.docx" \
-  --evidence "คะแนนชิ้นงาน.xlsx" "ลิงก์วิดีโอ.txt" \
-  --output "บันทึกผลการจัดการเรียนรู้.md" \
-  --analysis-json "ผลวิเคราะห์.json"
-```
+- Next.js App Router + TypeScript
+- Tailwind CSS + UI components แบบ shadcn-inspired
+- Supabase Auth, Database และ Storage-ready architecture
+- Server Actions
+- OpenAI-ready AI architecture โดยใช้ `AI_PROVIDER=mock` เป็นค่าเริ่มต้น
+- Vercel deployment ready
 
-## ไฟล์ที่รองรับ
-
-- `.docx` สำหรับไฟล์ตัวอย่างและแผนการจัดการเรียนรู้
-- `.csv` และ `.xlsx` สำหรับข้อมูลคะแนนหรือรายการหลักฐาน
-- `.txt` หรือไฟล์ข้อความอื่น ๆ สำหรับลิงก์คลิปวิดีโอและบันทึกเพิ่มเติม
-
-## ผลลัพธ์ที่ได้
-
-- ร่างบันทึกผลการจัดการเรียนรู้ตามหัวข้อหลัก เช่น ผลการจัดการเรียนรู้
-  ปัญหาและอุปสรรค แนวทางแก้ไข และข้อเสนอแนะ
-- สรุปข้อมูลคะแนนเชิงตัวเลขที่ตรวจพบ เช่น ค่าเฉลี่ย คะแนนต่ำสุด และคะแนนสูงสุด
-- สรุปลิงก์วิดีโอประกอบการสอนที่ตรวจพบจากไฟล์หลักฐาน
-- ไฟล์ JSON สำหรับตรวจสอบข้อมูลที่เครื่องมือวิเคราะห์ได้
-
-## การตรวจสอบบน GitHub
-
-รีโปนี้มี GitHub Actions สำหรับตรวจสอบสคริปต์ Python อัตโนมัติทุกครั้งที่ push,
-เปิด pull request หรือกดรันเองผ่าน `workflow_dispatch` โดยขั้นตอนจะ compile
-ไฟล์ Python แสดง help ของ CLI และรันชุดทดสอบด้วย `unittest`
-
-หากต้องการตรวจสอบในเครื่อง ให้รันคำสั่งต่อไปนี้:
+## Installation
 
 ```bash
-python -m py_compile Kru-Toffy/codex-python.py tests/test_codex_python.py
-python Kru-Toffy/codex-python.py --help
-python -m unittest discover -s tests -v
+npm install
+cp .env.example .env.local
+npm run dev
 ```
 
-> หมายเหตุ: สคริปต์นี้ไม่แก้ไขไฟล์ Word ต้นฉบับโดยตรง แต่สร้างร่าง Markdown
-> เพื่อให้ครูตรวจทาน ปรับภาษา และคัดลอกไปจัดรูปแบบในเอกสารต้นฉบับได้อย่างปลอดภัย
+## Environment Variables
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+AI_PROVIDER=mock
+OPENAI_MODEL=gpt-4.1-mini
+OPENAI_API_KEY=
+```
+
+ระบบจะเรียก OpenAI เฉพาะเมื่อ `AI_PROVIDER=openai` และมี `OPENAI_API_KEY` เท่านั้น หากเรียกไม่สำเร็จจะ fallback เป็น mock output
+
+## Supabase Setup
+
+1. สร้าง Supabase project
+2. เปิด SQL editor แล้วรันไฟล์ `supabase/schema.sql`
+3. ตั้งค่า env vars ใน `.env.local` และ Vercel
+4. ตรวจ RLS policies ว่าผู้ใช้เข้าถึงเฉพาะข้อมูลของตนเอง
+
+SQL schema อยู่ที่ `supabase/schema.sql` และมีตาราง:
+`profiles`, `products`, `review_projects`, `ai_briefs`, `scripts`, `compliance_checks`, `media_assets`, `approvals`, `posting_queue`, `analytics_events`, `ai_logs`
+
+## Local Development
+
+```bash
+npm run dev
+npm run build
+npx tsc --noEmit
+```
+
+หากยังไม่ได้ตั้งค่า Supabase env ระบบจะแสดง demo data เพื่อให้ตรวจ UI ได้ แต่ protected routes จะ redirect จริงเมื่อมี Supabase env ครบ
+
+## Vercel Deployment
+
+1. Import repository เข้า Vercel
+2. ตั้ง Environment Variables ทั้งหมด
+3. Deploy ด้วยค่า default ของ Next.js
+4. ตรวจ GitHub Actions และ Vercel build logs
+
+## Manual Test Checklist
+
+- Signup works
+- Login works
+- Protected routes redirect unauthenticated users
+- Product import works
+- Project creation works
+- Brief generation works in mock mode
+- Script generation works in mock mode
+- Compliance checker blocks risky claims
+- AI content label toggle works
+- Approval works
+- Publishing Queue blocks unsafe projects
+- AI Logs are created
+- AI Log detail page works
+- CSV export works
+
+## Safety Test Checklist
+
+Input script:
+
+```text
+สินค้านี้ใช้แล้วหายขาด เห็นผลทันที ปลอดภัย 100%
+```
+
+Expected result:
+
+```text
+status = BLOCK
+```
+
+## Legacy Thai DOCX Helper
+
+หมายเหตุสำหรับ Next.js 16: โปรเจกต์นี้ใช้ `proxy.ts` สำหรับ protected routes แทน `middleware.ts` ตาม convention ล่าสุดของ Next/Vercel
+
+ไฟล์ `Kru-Toffy/codex-python.py` ยังถูกเก็บไว้เป็นเครื่องมือเดิมสำหรับร่างบันทึกผลการจัดการเรียนรู้ภาษาไทยจาก DOCX/CSV/XLSX และมี unit tests ใน `tests/test_codex_python.py`
