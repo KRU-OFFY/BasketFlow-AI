@@ -1,0 +1,2 @@
+import Link from 'next/link'; import { AppShell } from '@/components/layout/app-shell'; import { Card } from '@/components/ui/card';
+export default function AiLogs(){return <AppShell><div className="flex items-center justify-between"><h1 className="text-3xl font-bold">AI Logs</h1><Link className="btn" href="/settings/ai-logs/export">Export CSV</Link></div><Card className="mt-6"><p>รายการ Log จะแสดง task_type, prompt_version, provider, model, status และ latency</p><Link className="text-orange" href="/settings/ai-logs/mock-id">ดูตัวอย่าง detail</Link></Card></AppShell>}

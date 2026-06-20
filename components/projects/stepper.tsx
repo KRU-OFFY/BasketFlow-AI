@@ -1,0 +1,2 @@
+const steps=['product_imported','brief_generated','script_generated','compliance_checked','media_generated','pending_approval','ready_to_publish'];
+export function WorkflowStepper({current}:{current?:string}){return <div className="flex flex-wrap gap-2">{steps.map(s=><span className={`rounded-full px-3 py-2 text-xs ${s===current?'bg-orange text-white':'bg-slate-100 text-slate-600'}`} key={s}>{s}</span>)}</div>}

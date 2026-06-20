@@ -1,0 +1,2 @@
+import { AppShell } from '@/components/layout/app-shell'; import { Card } from '@/components/ui/card';
+export default function Analytics(){return <AppShell><h1 className="text-3xl font-bold">Analytics</h1><div className="mt-6 grid gap-4 md:grid-cols-4">{['total projects','approved projects','ready to publish','blocked projects'].map(x=><Card key={x}><p className="text-sm text-slate-500">{x}</p><p className="text-3xl font-bold">0</p></Card>)}</div></AppShell>}

@@ -1,0 +1,2 @@
+import { AppShell } from '@/components/layout/app-shell'; import { Card } from '@/components/ui/card';
+export default function Approval(){return <AppShell><h1 className="text-3xl font-bold">Human Approval Gate</h1><Card className="mt-6"><p>ต้องผ่าน Compliance PASS + approved + Affiliate disclosure + AI content label ก่อนเข้าคิวเผยแพร่</p><div className="mt-4 flex gap-3"><button className="btn">Approve</button><button className="btn btn-secondary">Reject</button></div></Card></AppShell>}

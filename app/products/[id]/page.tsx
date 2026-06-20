@@ -1,0 +1,2 @@
+import { createProjectFromProduct } from '@/actions/projects'; import { AppShell } from '@/components/layout/app-shell'; import { Card } from '@/components/ui/card';
+export default function ProductDetail({params}:{params:{id:string}}){async function create(){'use server'; await createProjectFromProduct(params.id,'Review Project')} return <AppShell><h1 className="text-3xl font-bold">รายละเอียดสินค้า</h1><Card className="mt-6"><p>Product ID: {params.id}</p><form action={create} className="mt-4"><button className="btn">สร้าง Review Project</button></form></Card></AppShell>}

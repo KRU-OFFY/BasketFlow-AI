@@ -1,0 +1,2 @@
+import Link from 'next/link'; import { AppShell } from '@/components/layout/app-shell'; import { Card } from '@/components/ui/card';
+export default function Products(){return <AppShell><div className="flex items-center justify-between"><h1 className="text-3xl font-bold">สินค้า</h1><Link className="btn" href="/products/new">นำเข้าสินค้า</Link></div><Card className="mt-6"><p className="text-slate-500">Empty state: ยังไม่มีสินค้า</p></Card></AppShell>}
