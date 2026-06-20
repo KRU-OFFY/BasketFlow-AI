@@ -1,34 +1,45 @@
-# AI
+# AI Product Review Video Bot
 
-เครื่องมือในรีโปนี้ช่วยวิเคราะห์ไฟล์เอกสารประกอบการสอน เช่น ไฟล์ DOCX ตัวอย่างบันทึกผล/รายงานของครู ไฟล์ DOCX แผนการจัดการเรียนรู้ ไฟล์หลักฐานประกอบ เช่น คะแนนจากชิ้นงาน ใบงาน ข้อมูลลิงก์คลิปวิดีโอ และลิงก์อ้างอิง/บทสนทนาจากเว็บ เพื่อร่าง **บันทึกผลการจัดการเรียนรู้** เป็นไฟล์ Markdown ภาษาไทย
+Production-ready MVP for Shopee Affiliate creators to create AI-assisted product review video projects: Login → Dashboard → Import Product → Project → AI Brief → Script → Compliance → Media → Human Approval → Publishing Queue → Analytics → AI Logs.
 
-## การใช้งาน
+## Tech stack
+Next.js App Router, TypeScript, Tailwind CSS, Supabase Auth/Database/Storage-ready architecture, Server Actions, OpenAI-ready AI modules with mock mode by default, Vercel-ready deployment.
 
+## Installation
 ```bash
-python Kru-Toffy/codex-python.py \
-  --sample "รายงานผลลัพธ์ทางการเรียนของผู้เรียน ครูข้าวโพด.docx" \
-  --lesson-plan "แผนการจัดการเรียนรู้ วิทยาการคำนวณ ป.5 ต้นฉบับจริงทำใหม่ 2569.docx" \
-  --evidence "คะแนนชิ้นงาน.xlsx" "ลิงก์วิดีโอ.txt" \
-  --reference-url "https://example.com/shared-lesson-context" \
-  --output "บันทึกผลการจัดการเรียนรู้.md" \
-  --analysis-json "ผลวิเคราะห์.json"
+npm install
+npm run dev
 ```
 
-## ไฟล์และข้อมูลที่รองรับ
+## Environment variables
+Copy `.env.example` to `.env.local` and set Supabase keys. AI runs in mock mode unless `AI_PROVIDER=openai` and `OPENAI_API_KEY` are present.
 
-- `.docx` สำหรับไฟล์ตัวอย่างและแผนการจัดการเรียนรู้
-- `.csv` และ `.xlsx` สำหรับข้อมูลคะแนนหรือรายการหลักฐาน
-- `.txt` หรือไฟล์ข้อความอื่น ๆ สำหรับลิงก์คลิปวิดีโอและบันทึกเพิ่มเติม
-- `--reference-url` สำหรับลิงก์อ้างอิงหรือบทสนทนาที่เปิดอ่านได้แบบสาธารณะ โดยระบบจะดึงชื่อหน้าเว็บ ข้อความตัวอย่าง ตัวเลข และลิงก์วิดีโอที่พบมาประกอบผลวิเคราะห์
+## Supabase setup
+Run `supabase/schema.sql` in Supabase SQL editor. It creates all required tables, RLS owner policies, profile signup trigger, and updated_at triggers.
 
-> หากลิงก์มีระบบป้องกันบอต ต้องล็อกอิน หรือไม่อนุญาตให้ดึงเนื้อหาอัตโนมัติ ระบบจะบันทึกหมายเหตุไว้ในผลลัพธ์ เพื่อให้ครูคัดลอกข้อความสำคัญลงไฟล์ `.txt` แล้วแนบผ่าน `--evidence` ได้แทน
+## Local development
+```bash
+npm run build
+npx tsc --noEmit
+```
 
-## ผลลัพธ์ที่ได้
+## Vercel deployment
+Import the repo into Vercel, configure environment variables from `.env.example`, and deploy. Supabase schema must be applied before live auth/database use.
 
-- ร่างบันทึกผลการจัดการเรียนรู้ตามหัวข้อหลัก เช่น ผลการจัดการเรียนรู้ ปัญหาและอุปสรรค แนวทางแก้ไข และข้อเสนอแนะ
-- สรุปข้อมูลจากลิงก์อ้างอิง/บทสนทนา พร้อมหมายเหตุเมื่ออ่านลิงก์ไม่ได้
-- สรุปข้อมูลคะแนนเชิงตัวเลขที่ตรวจพบ เช่น ค่าเฉลี่ย คะแนนต่ำสุด และคะแนนสูงสุด
-- สรุปลิงก์วิดีโอประกอบการสอนที่ตรวจพบจากไฟล์หลักฐานหรือลิงก์อ้างอิง
-- ไฟล์ JSON สำหรับตรวจสอบข้อมูลที่เครื่องมือวิเคราะห์ได้
+## Manual test checklist
+- Signup works
+- Login works
+- Protected routes redirect unauthenticated users when Supabase env is configured
+- Product import validates Shopee links and risk categories
+- Project creation starts as `product_imported`
+- Brief generation works in mock mode
+- Script generation includes Thai Affiliate disclosure
+- Compliance checker blocks risky claims
+- AI content label toggle architecture exists
+- Approval gate exists
+- Publishing Queue blocks unsafe projects with `canMoveToReadyToPublish`
+- AI Logs list, detail, and CSV export routes exist
 
-> หมายเหตุ: สคริปต์นี้ไม่แก้ไขไฟล์ Word ต้นฉบับโดยตรง แต่สร้างร่าง Markdown เพื่อให้ครูตรวจทาน ปรับภาษา และคัดลอกไปจัดรูปแบบในเอกสารต้นฉบับได้อย่างปลอดภัย
+## Safety test checklist
+Input: `สินค้านี้ใช้แล้วหายขาด เห็นผลทันที ปลอดภัย 100%`
+Expected: `status = BLOCK` from the rule-based compliance checker.

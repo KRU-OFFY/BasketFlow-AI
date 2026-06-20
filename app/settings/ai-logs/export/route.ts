@@ -1,0 +1,1 @@
+export async function GET(){const csv='id,task_type,prompt_version,ai_provider,ai_model,status,latency_ms,created_at\n';return new Response(csv,{headers:{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="ai-logs.csv"'}})}

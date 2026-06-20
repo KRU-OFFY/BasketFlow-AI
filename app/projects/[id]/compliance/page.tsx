@@ -1,0 +1,2 @@
+import { AppShell } from '@/components/layout/app-shell'; import { Card } from '@/components/ui/card'; import { ruleBasedCompliance } from '@/lib/ai/compliance-checker';
+export default function Compliance(){const c=ruleBasedCompliance({text:'สินค้านี้ใช้แล้วหายขาด เห็นผลทันที ปลอดภัย 100%'});return <AppShell><h1 className="text-3xl font-bold">Compliance Center</h1><Card className="mt-6 border-red-200"><pre className="whitespace-pre-wrap text-sm">{JSON.stringify(c,null,2)}</pre></Card></AppShell>}

@@ -1,0 +1,2 @@
+import { AppShell } from '@/components/layout/app-shell'; import { Card } from '@/components/ui/card'; import { mockBrief } from '@/lib/ai/brief-generator';
+export default function Brief({params}:{params:{id:string}}){const b=mockBrief({title:'ตัวอย่างสินค้า'});return <AppShell><h1 className="text-3xl font-bold">AI Brief Studio</h1><Card className="mt-6"><pre className="whitespace-pre-wrap text-sm">{JSON.stringify({project_id:params.id,...b},null,2)}</pre></Card></AppShell>}
