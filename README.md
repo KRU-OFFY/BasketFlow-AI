@@ -1,6 +1,15 @@
-# AI Product Review Video Bot
+# BasketPilot AI
 
-Production-ready MVP for Shopee Affiliate creators to create AI-assisted product review video projects: Login → Dashboard → Import Product → Project → AI Brief → Script → Compliance → Media → Human Approval → Publishing Queue → Analytics → AI Logs.
+AI ผู้ช่วยปั้นคลิปรีวิว ให้พร้อมปักตะกร้าอย่างปลอดภัย
+
+BasketPilot AI is a production-ready MVP for Shopee Affiliate creators to create AI-assisted product review video projects: Login → Dashboard → Import Product → Project → AI Brief → Script → Compliance → Media → Human Approval → Publishing Queue → Analytics → AI Logs.
+
+## Brand identity
+
+- Product name: `BasketPilot AI`
+- Core idea: AI co-pilot for product review videos and safe affiliate basket workflows
+- Primary colors: Sunset Coral `#FF6B4A`, Deep Indigo `#302B7A`, Pilot Purple `#5B2EFF`, Mango Accent `#FFC857`
+- Logo concept: shopping basket + play button + navigation compass trail
 
 ## Tech stack
 Next.js App Router, TypeScript, Tailwind CSS, Supabase Auth/Database/Storage-ready architecture, Server Actions, OpenAI-ready AI modules with mock mode by default, Vercel-ready deployment.
