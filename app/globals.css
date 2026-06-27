@@ -1,2 +1,18 @@
 @tailwind base;@tailwind components;@tailwind utilities;
-body{background:#f8fafc;color:#0f172a}.input{width:100%;border:1px solid #cbd5e1;border-radius:0.75rem;padding:0.75rem}.btn{border-radius:0.75rem;background:#f97316;color:white;padding:0.75rem 1rem;font-weight:700}.btn-secondary{background:#7c3aed}.label{font-size:.875rem;font-weight:700;color:#334155}
+
+:root{
+  --basketpilot-navy:#0B1026;
+  --basketpilot-indigo:#302B7A;
+  --basketpilot-orange:#FF6B4A;
+  --basketpilot-rose:#FF4D6D;
+  --basketpilot-purple:#5B2EFF;
+  --basketpilot-mango:#FFC857;
+}
+
+body{background:#f8fafc;color:#0f172a}
+.input{width:100%;border:1px solid #cbd5e1;border-radius:0.9rem;padding:0.85rem 1rem;outline:none;transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;background:white}
+.input:focus{border-color:var(--basketpilot-purple);box-shadow:0 0 0 4px rgba(91,46,255,.12)}
+.btn{border-radius:0.9rem;background:linear-gradient(135deg,var(--basketpilot-orange),var(--basketpilot-rose),var(--basketpilot-purple));color:white;padding:0.85rem 1.1rem;font-weight:800;box-shadow:0 12px 30px rgba(91,46,255,.18);transition:transform .15s ease, box-shadow .15s ease}
+.btn:hover{transform:translateY(-1px);box-shadow:0 16px 34px rgba(91,46,255,.24)}
+.btn-secondary{background:linear-gradient(135deg,var(--basketpilot-indigo),var(--basketpilot-purple))}
+.label{font-size:.875rem;font-weight:800;color:#334155}
