@@ -2,7 +2,8 @@ import { login, signup } from '@/actions/auth';
 import { BasketPilotLogo, BASKETPILOT_TAGLINE } from '@/components/brand/basketpilot-logo';
 import { Card } from '@/components/ui/card';
 
-export default function LoginPage() {
+export default async function LoginPage({searchParams}:{searchParams:Promise<{error?:string}>}) {
+  const {error}=await searchParams;
   return (
     <main className="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_top_left,#FF6B4A_0,#302B7A_42%,#0B1026_100%)] p-6">
       <div className="w-full max-w-5xl overflow-hidden rounded-[2rem] bg-white shadow-2xl ring-1 ring-white/20 md:grid md:grid-cols-[1.05fr_0.95fr]">
@@ -35,18 +36,19 @@ export default function LoginPage() {
           <Card className="border-0 shadow-none">
             <h2 className="text-2xl font-black text-navy">เข้าสู่ระบบ BasketPilot AI</h2>
             <p className="mt-2 text-slate-600">เริ่มจัดการงานรีวิวสินค้า Shopee Affiliate ด้วย AI workflow ที่ปลอดภัย</p>
+            {error ? <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700" role="alert">{error}</p> : null}
 
             <form action={login} className="mt-8 space-y-3">
-              <input className="input" name="email" type="email" placeholder="อีเมล" />
-              <input className="input" name="password" type="password" placeholder="รหัสผ่าน" />
+              <input autoComplete="email" className="input" name="email" required type="email" placeholder="อีเมล" />
+              <input autoComplete="current-password" className="input" name="password" required type="password" placeholder="รหัสผ่าน" />
               <button className="btn w-full">Login</button>
             </form>
 
             <form action={signup} className="mt-8 space-y-3 border-t pt-8">
               <p className="text-sm font-bold text-slate-500">สมัครใช้งานใหม่</p>
-              <input className="input" name="full_name" placeholder="ชื่อ-นามสกุล" />
-              <input className="input" name="email" type="email" placeholder="อีเมลสมัครใหม่" />
-              <input className="input" name="password" type="password" placeholder="รหัสผ่าน" />
+              <input autoComplete="name" className="input" name="full_name" required placeholder="ชื่อ-นามสกุล" />
+              <input autoComplete="email" className="input" name="email" required type="email" placeholder="อีเมลสมัครใหม่" />
+              <input autoComplete="new-password" className="input" minLength={8} name="password" required type="password" placeholder="รหัสผ่านอย่างน้อย 8 ตัวอักษร" />
               <button className="btn btn-secondary w-full">Signup</button>
             </form>
           </Card>
