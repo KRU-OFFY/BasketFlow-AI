@@ -7,8 +7,8 @@ import { canMoveToReadyToPublish } from '@/lib/validators/publishing';
 
 export default async function Approval({params}:{params:Promise<{id:string}>}) {
   const {id}=await params; const {supabase,user,project}=await getOwnedProjectPage(id);
-  const [{data:check,error},{data:approval}]=await Promise.all([supabase.from('compliance_checks').select('*').eq('project_id',id).eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle(),supabase.from('approvals').select('*').eq('project_id',id).eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle()]);
-  if(error) throw new Error(`โหลด Approval Gate ไม่สำเร็จ: ${error.message}`);
+  const [{data:check,error:checkError},{data:approval,error:approvalError}]=await Promise.all([supabase.from('compliance_checks').select('*').eq('project_id',id).eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle(),supabase.from('approvals').select('*').eq('project_id',id).eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle()]);
+  if(checkError || approvalError) throw new Error(`โหลด Approval Gate ไม่สำเร็จ: ${checkError?.message || approvalError?.message}`);
   const safe=canMoveToReadyToPublish({complianceStatus:check?.status,approvalStatus:approval?.status,hasAffiliateDisclosure:project.has_affiliate_disclosure,hasAiContentLabel:project.has_ai_content_label});
   const approve=approveProject.bind(null,id); const reject=rejectProjectFromForm.bind(null,id); const queue=moveToPublishingQueue.bind(null,id);
   const rows=[['Compliance PASS',check?.status==='PASS'],['Human approved',approval?.status==='approved'],['Affiliate disclosure',project.has_affiliate_disclosure],['AI Content Label',project.has_ai_content_label]] as const;

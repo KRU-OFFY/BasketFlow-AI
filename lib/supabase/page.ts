@@ -4,7 +4,7 @@ import { createServerSupabase } from './server';
 export async function getPageContext() {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) redirect('/login');
+  if (error || !data?.user) redirect('/login');
   return { supabase, user:data.user };
 }
 

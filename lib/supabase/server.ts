@@ -32,13 +32,13 @@ export async function createServerSupabase() {
 export async function getUser() {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.auth.getUser();
-  if (error) return null;
+  if (error || !data?.user) return null;
   return data.user;
 }
 
 export async function requireUser() {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) throw new Error('Unauthorized');
+  if (error || !data?.user) throw new Error('Unauthorized');
   return { supabase, user: data.user };
 }

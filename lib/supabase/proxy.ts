@@ -31,13 +31,14 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const { data } = await supabase.auth.getUser();
-  if (isProtected && !data.user) {
+  const { data, error } = await supabase.auth.getUser();
+  const user = data?.user;
+  if (isProtected && (error || !user)) {
     const redirectResponse = NextResponse.redirect(new URL('/login', request.url));
     response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
     return redirectResponse;
   }
-  if (request.nextUrl.pathname === '/login' && data.user) {
+  if (request.nextUrl.pathname === '/login' && user) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
   return response;

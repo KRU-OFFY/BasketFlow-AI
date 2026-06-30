@@ -15,6 +15,8 @@ test('accepts only exact Shopee hosts', () => {
   assert.equal(looksLikeShopeeLink('https://shp.ee/abc'), true);
   assert.equal(looksLikeShopeeLink('https://shopee.co.th.evil.example/x'), false);
   assert.equal(looksLikeShopeeLink('https://shp.ee.evil.example/x'), false);
+  assert.equal(looksLikeShopeeLink('https://s.shopee.co.th/x'), false);
+  assert.equal(looksLikeShopeeLink('https://mall.shopee.co.th/x'), false);
   assert.equal(looksLikeShopeeLink('ftp://shopee.co.th/x'), false);
 });
 
