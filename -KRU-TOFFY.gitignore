@@ -1,0 +1,9 @@
+node_modules
+.next
+.env*.local
+tsconfig.tsbuildinfo
+supabase/.temp/
+output/playwright/
+
+__pycache__/
+*.py[cod]
