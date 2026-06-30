@@ -1,23 +1,6 @@
+import { notFound } from 'next/navigation';
 import { AppShell } from '@/components/layout/app-shell';
 import { Badge, Card } from '@/components/ui/card';
-import { getMockAiLog } from '@/lib/mock-data';
+import { getPageContext } from '@/lib/supabase/page';
 
-export default function AiLogDetail({ params }: { params: { id: string } }) {
-  const log = getMockAiLog(params.id);
-
-  return (
-    <AppShell>
-      <h1 className="text-3xl font-bold">AI Log Detail</h1>
-      <Card className="mt-6">
-        <Badge tone={log.status === 'success' ? 'green' : 'orange'}>{log.status}</Badge>
-        <dl className="mt-5 grid gap-3 text-sm md:grid-cols-2">
-          <div><dt className="font-bold">Task</dt><dd>{log.task_type}</dd></div>
-          <div><dt className="font-bold">Prompt Version</dt><dd>{log.prompt_version}</dd></div>
-          <div><dt className="font-bold">Provider</dt><dd>{log.ai_provider}</dd></div>
-          <div><dt className="font-bold">Latency</dt><dd>{log.latency_ms}ms</dd></div>
-        </dl>
-        <pre className="mt-5 overflow-auto rounded-xl bg-slate-950 p-4 text-xs text-slate-100">{JSON.stringify(log, null, 2)}</pre>
-      </Card>
-    </AppShell>
-  );
-}
+export default async function AiLogDetail({params}:{params:Promise<{id:string}>}) {const {id}=await params;const {supabase,user}=await getPageContext();const {data:log,error}=await supabase.from('ai_logs').select('*').eq('id',id).eq('user_id',user.id).single();if(error||!log)notFound();return <AppShell><h1 className="text-3xl font-bold">AI Log Detail</h1><Card className="mt-6"><Badge tone={log.status==='error'?'red':log.status==='success'?'green':'orange'}>{log.status}</Badge><dl className="mt-5 grid gap-3 text-sm md:grid-cols-2"><div><dt className="font-bold">Task</dt><dd>{log.task_type}</dd></div><div><dt className="font-bold">Prompt Version</dt><dd>{log.prompt_version}</dd></div><div><dt className="font-bold">Provider / Model</dt><dd>{log.ai_provider} / {log.ai_model}</dd></div><div><dt className="font-bold">Latency</dt><dd>{log.latency_ms??0}ms</dd></div></dl><h2 className="mt-5 font-bold">Input</h2><pre className="mt-2 overflow-auto rounded-xl bg-slate-950 p-4 text-xs text-slate-100">{JSON.stringify(log.input_payload,null,2)}</pre><h2 className="mt-5 font-bold">Output</h2><pre className="mt-2 overflow-auto rounded-xl bg-slate-950 p-4 text-xs text-slate-100">{JSON.stringify(log.output_payload,null,2)}</pre>{log.error_message?<p className="mt-4 text-red-700">{log.error_message}</p>:null}</Card></AppShell>;}

@@ -1,22 +1,31 @@
-import { mockAiLogs } from '@/lib/mock-data';
+import { createServerSupabase } from '@/lib/supabase/server';
+
+function csv(value: unknown) {
+  let text = String(value ?? '');
+  if (/^[=+\-@]/.test(text)) text = `'${text}`;
+  return `"${text.replaceAll('"', '""')}"`;
+}
 
 export async function GET() {
-  const header = 'id,task_type,prompt_version,ai_provider,ai_model,status,latency_ms,created_at';
-  const rows = mockAiLogs.map((log) => [
-    log.id,
-    log.task_type,
-    log.prompt_version,
-    log.ai_provider,
-    log.ai_model,
-    log.status,
-    log.latency_ms,
-    log.created_at,
-  ].join(','));
+  const supabase = await createServerSupabase();
+  const { data, error: authError } = await supabase.auth.getUser();
+  const user = data?.user;
+  if (authError || !user) return new Response('Unauthorized', { status: 401 });
 
-  return new Response([header, ...rows].join('\n'), {
+  const { data: logs, error } = await supabase
+    .from('ai_logs')
+    .select('id,project_id,task_type,prompt_version,ai_provider,ai_model,status,latency_ms,created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+  if (error) return new Response(`Export failed: ${error.message}`, { status: 500 });
+
+  const columns = ['id', 'project_id', 'task_type', 'prompt_version', 'ai_provider', 'ai_model', 'status', 'latency_ms', 'created_at'] as const;
+  const body = [columns.join(','), ...(logs ?? []).map((log) => columns.map((key) => csv(log[key])).join(','))].join('\r\n');
+  return new Response(`\uFEFF${body}`, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="ai-logs.csv"',
+      'Content-Disposition': 'attachment; filename="basketpilot-ai-logs.csv"',
+      'Cache-Control': 'no-store',
     },
   });
 }

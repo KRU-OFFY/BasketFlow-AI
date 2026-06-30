@@ -2,53 +2,53 @@
 
 AI ผู้ช่วยปั้นคลิปรีวิว ให้พร้อมปักตะกร้าอย่างปลอดภัย
 
-BasketPilot AI is a production-ready MVP for Shopee Affiliate creators to create AI-assisted product review video projects: Login → Dashboard → Import Product → Project → AI Brief → Script → Compliance → Media → Human Approval → Publishing Queue → Analytics → AI Logs.
-
-## Brand identity
-
-- Product name: `BasketPilot AI`
-- Core idea: AI co-pilot for product review videos and safe affiliate basket workflows
-- Primary colors: Sunset Coral `#FF6B4A`, Deep Indigo `#302B7A`, Pilot Purple `#5B2EFF`, Mango Accent `#FFC857`
-- Logo concept: shopping basket + play button + navigation compass trail
+BasketPilot AI ช่วยครีเอเตอร์ทำงานตั้งแต่นำเข้าสินค้า Shopee → สร้าง AI Brief/Script → ตรวจ Compliance → Media → Human Approval → Publishing Queue โดยมี Safety Gate ฝั่งเซิร์ฟเวอร์
 
 ## Tech stack
-Next.js App Router, TypeScript, Tailwind CSS, Supabase Auth/Database/Storage-ready architecture, Server Actions, OpenAI-ready AI modules with mock mode by default, Vercel-ready deployment.
 
-## Installation
-```bash
+Next.js App Router, TypeScript, Tailwind CSS, Supabase Auth/Database, Storage-ready metadata, Server Actions และ Mock AI ที่พร้อมสลับเป็น OpenAI
+
+## Local setup
+
+```powershell
 npm install
+npx supabase start
+npx supabase db reset
+npx supabase status -o env
+```
+
+นำค่า `API_URL` และ publishable/anon key จาก `supabase status` ใส่ `.env.local`:
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<local publishable or anon key>
+AI_PROVIDER=mock
+```
+
+จากนั้นรัน:
+
+```powershell
 npm run dev
 ```
 
-## Environment variables
-Copy `.env.example` to `.env.local` and set Supabase keys. AI runs in mock mode unless `AI_PROVIDER=openai` and `OPENAI_API_KEY` are present.
+## Verification
 
-## Supabase setup
-Run `supabase/schema.sql` in Supabase SQL editor. It creates all required tables, RLS owner policies, profile signup trigger, and updated_at triggers.
-
-## Local development
-```bash
-npm run build
+```powershell
+npm test
 npx tsc --noEmit
+npm run build
 ```
 
-## Vercel deployment
-Import the repo into Vercel, configure environment variables from `.env.example`, and deploy. Supabase schema must be applied before live auth/database use.
+Safety test input: `สินค้านี้ใช้แล้วหายขาด เห็นผลทันที ปลอดภัย 100%` ต้องได้ `BLOCK`
 
-## Manual test checklist
-- Signup works
-- Login works
-- Protected routes redirect unauthenticated users when Supabase env is configured
-- Product import validates Shopee links and risk categories
-- Project creation starts as `product_imported`
-- Brief generation works in mock mode
-- Script generation includes Thai Affiliate disclosure
-- Compliance checker blocks risky claims
-- AI content label toggle architecture exists
-- Approval gate exists
-- Publishing Queue blocks unsafe projects with `canMoveToReadyToPublish`
-- AI Logs list, detail, and CSV export routes exist
+## Security model
 
-## Safety test checklist
-Input: `สินค้านี้ใช้แล้วหายขาด เห็นผลทันที ปลอดภัย 100%`
-Expected: `status = BLOCK` from the rule-based compliance checker.
+- ทุกตาราง workflow เปิด RLS และจำกัดแถวด้วย authenticated `user_id`
+- Server Actions ตรวจ user และ ownership ซ้ำเสมอ
+- Publishing Queue อ่าน Compliance/Approval/disclosure/AI label จากฐานข้อมูล และเรียก atomic database RPC
+- ห้ามใส่ service-role/secret key ในตัวแปร `NEXT_PUBLIC_*`
+- AI Logs ใช้ snake_case และผูกกับผู้ใช้/โปรเจกต์
+
+## Vercel
+
+ตั้งค่า Supabase URL, publishable key และ `AI_PROVIDER=mock` ใน Vercel Environment Variables แล้ว apply migration ก่อน deploy ระบบจริง OpenAI เป็น opt-in ด้วย `AI_PROVIDER=openai`, `OPENAI_MODEL` และ `OPENAI_API_KEY` ฝั่งเซิร์ฟเวอร์เท่านั้น

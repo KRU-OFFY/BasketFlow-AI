@@ -2,6 +2,9 @@ node_modules
 .next
 .env*.local
 tsconfig.tsbuildinfo
+supabase/.temp/
+supabase/.branches/
+output/playwright/
 
 __pycache__/
 *.py[cod]

@@ -27,7 +27,7 @@ export function BasketPilotMark({ className = 'h-12 w-12' }: { className?: strin
           <stop stopColor="#FF6B4A" />
           <stop offset="1" stopColor="#302B7A" />
         </linearGradient>
-        <filter id="basketpilot-shadow" x="8" y="10" width="80" height="82" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+        <filter id="basketpilot-shadow" x="-8" y="-8" width="112" height="116" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
           <feDropShadow dx="0" dy="6" stdDeviation="5" floodColor="#302B7A" floodOpacity="0.16" />
         </filter>
       </defs>
