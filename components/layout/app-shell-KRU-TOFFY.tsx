@@ -1,0 +1,30 @@
+import { BasketPilotLogo } from '@/components/brand/basketpilot-logo';
+import { logout } from '@/actions/auth';
+import Link from 'next/link';
+import { Sidebar } from './sidebar';
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <main className="min-w-0 flex-1 bg-slate-50 p-4 md:p-8">
+        <header className="mb-8 rounded-3xl border border-white bg-white/80 p-5 shadow-sm backdrop-blur">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <BasketPilotLogo showTagline />
+            <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-orange/10 via-rose/10 to-purple/10 px-4 py-3 text-right">
+              <div>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-purple">Safe Creator Workflow</p>
+              <p className="mt-1 text-sm font-medium text-slate-600">เลือกสินค้า → สร้างสคริปต์ → ตรวจความเสี่ยง → พร้อมปักตะกร้า</p>
+              </div>
+              <form action={logout}><button className="text-sm font-bold text-navy underline">ออกจากระบบ</button></form>
+            </div>
+          </div>
+          <nav className="mt-4 flex gap-3 overflow-x-auto border-t border-slate-100 pt-4 text-sm font-bold text-navy lg:hidden">
+            {[['/dashboard','แดชบอร์ด'],['/products','สินค้า'],['/projects','โปรเจกต์'],['/posting-queue','คิวเผยแพร่'],['/analytics','Analytics'],['/settings','ตั้งค่า']].map(([href,label])=><Link className="whitespace-nowrap" href={href} key={href}>{label}</Link>)}
+          </nav>
+        </header>
+        {children}
+      </main>
+    </div>
+  );
+}
