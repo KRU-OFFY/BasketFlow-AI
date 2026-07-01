@@ -1,12 +1,10 @@
-'use client';
-
 import { datadogRum } from '@datadog/browser-rum';
 import { redactSensitiveText } from '@/lib/observability/redact';
 
 const applicationId = process.env.NEXT_PUBLIC_DD_APPLICATION_ID;
 const clientToken = process.env.NEXT_PUBLIC_DD_CLIENT_TOKEN;
 
-if (applicationId && clientToken) {
+if (applicationId && clientToken && !datadogRum.getInitConfiguration()) {
   datadogRum.init({
     applicationId,
     clientToken,
@@ -33,8 +31,4 @@ if (applicationId && clientToken) {
       return true;
     },
   });
-}
-
-export function DatadogRum() {
-  return null;
 }
