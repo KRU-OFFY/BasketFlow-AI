@@ -52,3 +52,13 @@ Safety test input: `สินค้านี้ใช้แล้วหายข
 ## Vercel
 
 ตั้งค่า Supabase URL, publishable key และ `AI_PROVIDER=mock` ใน Vercel Environment Variables แล้ว apply migration ก่อน deploy ระบบจริง OpenAI เป็น opt-in ด้วย `AI_PROVIDER=openai`, `OPENAI_MODEL` และ `OPENAI_API_KEY` ฝั่งเซิร์ฟเวอร์เท่านั้น
+
+## Datadog Error Tracking
+
+Browser Error Tracking ใช้ Datadog RUM บน AP1 และจะเริ่มทำงานเฉพาะเมื่อกำหนด
+`NEXT_PUBLIC_DD_APPLICATION_ID` กับ `NEXT_PUBLIC_DD_CLIENT_TOKEN` ใน environment แล้วเท่านั้น
+กำหนด `NEXT_PUBLIC_DD_ENV` และ `NEXT_PUBLIC_DD_VERSION` เพื่อแยก environment/release ได้
+
+การตั้งค่าเริ่มต้นปิด Session Replay, user interaction และ resource tracking พร้อม mask input
+และลบ credential, JWT และอีเมลออกจาก URL/error ก่อนส่ง ห้ามใส่ Datadog API key
+หรือ secret key ใด ๆ ในตัวแปร `NEXT_PUBLIC_*`

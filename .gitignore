@@ -8,3 +8,5 @@ output/playwright/
 
 __pycache__/
 *.py[cod]
+.vercel
+.env*
