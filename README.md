@@ -22,6 +22,7 @@ npx supabase status -o env
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<local publishable or anon key>
+SUPABASE_SERVICE_ROLE_KEY=<local service role key; server-only>
 AI_PROVIDER=mock
 ```
 
@@ -35,6 +36,7 @@ npm run dev
 
 ```powershell
 npm test
+npm run test:integration # requires SUPABASE_TEST_* variables from the local Supabase instance
 npx tsc --noEmit
 npm run build
 ```
@@ -43,15 +45,19 @@ Safety test input: `สินค้านี้ใช้แล้วหายข
 
 ## Security model
 
-- ทุกตาราง workflow เปิด RLS และจำกัดแถวด้วย authenticated `user_id`
-- Server Actions ตรวจ user และ ownership ซ้ำเสมอ
-- Publishing Queue อ่าน Compliance/Approval/disclosure/AI label จากฐานข้อมูล และเรียก atomic database RPC
+- ทุกตาราง workflow เปิด RLS สำหรับการอ่านตาม `user_id` และถอนสิทธิ์เขียนของ browser JWT
+- Server Actions ตรวจ user/ownership แล้วเรียก service-role RPC แบบ atomic เท่านั้น
+- Compliance แยกเป็น Preliminary หลัง Script และ Final หลัง Media/AI label
+- Approval และ Publishing Queue ผูกกับ Script, Final Compliance และ Media revision เดียวกัน
+- Publishing Queue มี database trigger ตรวจ Safety Gate ซ้ำและไม่รับค่า PASS/approved จาก client
 - ห้ามใส่ service-role/secret key ในตัวแปร `NEXT_PUBLIC_*`
-- AI Logs ใช้ snake_case และผูกกับผู้ใช้/โปรเจกต์
+- AI Logs ใช้ snake_case, ผูก `request_id`, sanitize payload และมี RPC ล้างข้อมูลอายุเกินค่า retention (ค่าเริ่มต้น 90 วัน)
 
 ## Vercel
 
-ตั้งค่า Supabase URL, publishable key และ `AI_PROVIDER=mock` ใน Vercel Environment Variables แล้ว apply migration ก่อน deploy ระบบจริง OpenAI เป็น opt-in ด้วย `AI_PROVIDER=openai`, `OPENAI_MODEL` และ `OPENAI_API_KEY` ฝั่งเซิร์ฟเวอร์เท่านั้น
+ตั้งค่า Supabase URL, publishable key, `SUPABASE_SERVICE_ROLE_KEY` (Sensitive) และ `AI_PROVIDER=mock` ใน Vercel Environment Variables แล้วทดสอบ Preview ก่อนเสมอ ต้องสำรองฐานข้อมูล Production ก่อน apply migration หรือ archive ข้อมูลซ้ำ OpenAI เป็น opt-in ด้วย `AI_PROVIDER=openai`, `OPENAI_MODEL` และ `OPENAI_API_KEY` ฝั่งเซิร์ฟเวอร์เท่านั้น
+
+สคริปต์ `supabase/maintenance/20260703_archive_duplicate_projects.sql` ใช้สำหรับเก็บโปรเจกต์ซ้ำเดิมเข้าคลังแบบย้อนคืนได้ ห้ามรันก่อนสำรองข้อมูลและตรวจจำนวนเป้าหมายใน Preview/transaction test
 
 ## Datadog Error Tracking
 

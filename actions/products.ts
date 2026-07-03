@@ -2,6 +2,7 @@
 import { redirect } from 'next/navigation';
 import { detectProductRisk, looksLikeShopeeLink } from '@/lib/validators/product';
 import { requireUser } from '@/lib/supabase/server';
+import { createAdminSupabase } from '@/lib/supabase/admin';
 
 export type ProductActionState = { error?:string; fields?:Record<string,string> };
 
@@ -14,18 +15,21 @@ export async function createProduct(formData: FormData): Promise<ProductActionSt
   if (price !== null && (!Number.isFinite(price) || price < 0)) return { error:'ราคาต้องเป็นตัวเลขตั้งแต่ 0 ขึ้นไป', fields };
   if (commissionRate !== null && (!Number.isFinite(commissionRate) || commissionRate < 0 || commissionRate > 100)) return { error:'Commission rate ต้องอยู่ระหว่าง 0–100', fields };
 
-  const { supabase, user } = await requireUser();
-  const { data, error } = await supabase.from('products').insert({
+  const { user } = await requireUser();
+  const admin = createAdminSupabase();
+  const { data, error } = await admin.from('products').insert({
     user_id:user.id,
     title:fields.title,
     category:fields.category || null,
     affiliate_link:fields.affiliate_link,
+    source:'manual',
+    affiliate_validation_status:'validated',
     image_url:fields.image_url || null,
     price,
     commission_rate:commissionRate,
     risk_flags:detectProductRisk(fields.title, fields.category),
   }).select('id').single();
-  if (error || !data?.id) return { error:`บันทึกสินค้าไม่สำเร็จ: ${error?.message ?? 'ไม่พบรหัสสินค้า'}`, fields };
+  if (error || !data?.id) return { error:'บันทึกสินค้าไม่สำเร็จ กรุณาลองใหม่', fields };
   redirect(`/products/${data.id}`);
 }
 
