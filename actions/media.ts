@@ -1,33 +1,40 @@
 'use server';
 import { revalidatePath } from 'next/cache';
-import { clearPendingPublishingQueue, requireOwnedProject } from '@/lib/supabase/ownership';
+import { requireOwnedProject } from '@/lib/supabase/ownership';
+import { claimWorkflowRequest, failWorkflowRequest, readRequestId } from '@/lib/actions/workflow-request';
 
 const mediaTypes = ['voiceover','avatar','subtitle','video_preview','rendered_video'] as const;
 export type MediaType = typeof mediaTypes[number];
 
-export async function createMediaAsset(projectId:string, type:MediaType) {
+export async function createMediaAsset(projectId:string, type:MediaType, requestId=crypto.randomUUID()) {
   if (!mediaTypes.includes(type)) throw new Error('ประเภท Media Asset ไม่ถูกต้อง');
-  const { supabase, user } = await requireOwnedProject(projectId);
-  const { error } = await supabase.from('media_assets').insert({ user_id:user.id, project_id:projectId, type, provider:'mock', metadata:{status:'placeholder'} });
-  if (error) throw new Error(`สร้าง Media Asset ไม่สำเร็จ: ${error.message}`);
-  const { error:updateError } = await supabase.from('review_projects').update({status:'media_generated',compliance_status:null,approval_status:'pending'}).eq('id',projectId).eq('user_id',user.id);
-  if (updateError) throw new Error(`อัปเดตสถานะโปรเจกต์ไม่สำเร็จ: ${updateError.message}`);
-  await clearPendingPublishingQueue(supabase, user.id, projectId);
+  const { user } = await requireOwnedProject(projectId);
+  const {admin,claimed}=await claimWorkflowRequest({requestId,userId:user.id,projectId,actionType:'create_media'});
+  if(!claimed) return;
+  const { error } = await admin.rpc('record_media_asset',{p_request_id:requestId,p_user_id:user.id,p_project_id:projectId,p_type:type});
+  if (error) {
+    await failWorkflowRequest(requestId);
+    throw new Error('สร้าง Media Asset ไม่สำเร็จ กรุณาลองใหม่');
+  }
   revalidatePath(`/projects/${projectId}/media`);
 }
 
 export async function updateAiContentLabel(projectId:string, enabled:boolean) {
-  const { supabase, user } = await requireOwnedProject(projectId);
-  const { error } = await supabase.from('review_projects').update({has_ai_content_label:enabled}).eq('id',projectId).eq('user_id',user.id);
-  if (error) throw new Error(`บันทึก AI Content Label ไม่สำเร็จ: ${error.message}`);
-  if (!enabled) {
-    const { error:resetError } = await supabase.from('review_projects').update({status:'warning',compliance_status:null,approval_status:'pending'}).eq('id',projectId).eq('user_id',user.id);
-    if (resetError) throw new Error(`รีเซ็ต Safety Gate ไม่สำเร็จ: ${resetError.message}`);
-    await clearPendingPublishingQueue(supabase, user.id, projectId);
+  const { user } = await requireOwnedProject(projectId);
+  const requestId=crypto.randomUUID();
+  const {admin}=await claimWorkflowRequest({requestId,userId:user.id,projectId,actionType:'update_ai_label'});
+  const { error } = await admin.rpc('set_project_ai_label',{p_request_id:requestId,p_user_id:user.id,p_project_id:projectId,p_enabled:enabled});
+  if (error) {
+    await failWorkflowRequest(requestId);
+    throw new Error('บันทึก AI Content Label ไม่สำเร็จ กรุณาลองใหม่');
   }
   revalidatePath(`/projects/${projectId}/media`);
 }
 
 export async function updateAiContentLabelFromForm(projectId:string, formData:FormData) {
   return updateAiContentLabel(projectId, formData.get('enabled') === 'true');
+}
+
+export async function createMediaAssetFromForm(projectId:string, type:MediaType, formData:FormData) {
+  return createMediaAsset(projectId, type, readRequestId(formData));
 }

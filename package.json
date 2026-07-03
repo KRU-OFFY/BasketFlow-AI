@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "test": "node --test --experimental-strip-types tests/*.test.ts",
+    "test:integration": "node --test --experimental-strip-types tests/supabase-security.integration.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

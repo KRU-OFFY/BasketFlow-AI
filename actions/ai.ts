@@ -1,14 +1,16 @@
 'use server';
 import { revalidatePath } from 'next/cache';
-import { clearPendingPublishingQueue, requireOwnedProject } from '@/lib/supabase/ownership';
+import { requireOwnedProject } from '@/lib/supabase/ownership';
 import { generateProductBrief } from '@/lib/ai/brief-generator';
 import { generateReviewScript } from '@/lib/ai/script-generator';
 import { checkCompliance } from '@/lib/ai/compliance-checker';
 import { PROMPT_VERSIONS } from '@/lib/ai/prompt-versions';
 import { logAiEvent } from '@/lib/ai/logger';
+import { claimWorkflowRequest, failWorkflowRequest, readRequestId } from '@/lib/actions/workflow-request';
 
 const durations = [15,30,60,90] as const;
 export type ScriptDuration = typeof durations[number];
+export type CompliancePhase = 'preliminary' | 'final';
 
 function aiMetadata() {
   const openai = process.env.AI_PROVIDER === 'openai' && Boolean(process.env.OPENAI_API_KEY);
@@ -21,72 +23,93 @@ async function loadProductForProject(supabase:Awaited<ReturnType<typeof import('
   return product;
 }
 
-export async function generateBriefAction(projectId:string) {
+export async function generateBriefAction(projectId:string, requestId=crypto.randomUUID()) {
   const started = Date.now();
   const { supabase, user, project } = await requireOwnedProject(projectId);
   const product = await loadProductForProject(supabase, project, user.id);
-  const result = await generateProductBrief({title:product.title,category:product.category ?? undefined,risk_flags:product.risk_flags ?? []});
-  const meta = aiMetadata();
-  const { error } = await supabase.from('ai_briefs').insert({
-    user_id:user.id,project_id:projectId,...result.output,
-    prompt_version:PROMPT_VERSIONS.productAnalyzer,ai_provider:meta.provider,ai_model:meta.model,
-  });
-  if (error) throw new Error(`บันทึก AI Brief ไม่สำเร็จ: ${error.message}`);
-  const { error:updateError } = await supabase.from('review_projects').update({status:'brief_generated',compliance_status:null,approval_status:'pending',has_affiliate_disclosure:false}).eq('id',projectId).eq('user_id',user.id);
-  if (updateError) throw new Error(`อัปเดตสถานะ Brief ไม่สำเร็จ: ${updateError.message}`);
-  await clearPendingPublishingQueue(supabase, user.id, projectId);
-  await logAiEvent({user_id:user.id,project_id:projectId,task_type:'generate_brief',prompt_version:PROMPT_VERSIONS.productAnalyzer,ai_provider:meta.provider,ai_model:meta.model,input_payload:{product_id:product.id,title:product.title},output_payload:result.output,error_message:result.error ?? null,latency_ms:Date.now()-started,status:result.status});
+  const {admin,claimed}=await claimWorkflowRequest({requestId,userId:user.id,projectId,actionType:'generate_brief'});
+  if(!claimed) return;
+  try {
+    const result = await generateProductBrief({title:product.title,category:product.category ?? undefined,risk_flags:product.risk_flags ?? []});
+    const meta = aiMetadata();
+    const payload={...result.output,prompt_version:PROMPT_VERSIONS.productAnalyzer,ai_provider:meta.provider,ai_model:meta.model};
+    const { error } = await admin.rpc('record_ai_brief',{p_request_id:requestId,p_user_id:user.id,p_project_id:projectId,p_payload:payload});
+    if (error) throw new Error('record_failed');
+    await logAiEvent({user_id:user.id,project_id:projectId,request_id:requestId,task_type:'generate_brief',prompt_version:PROMPT_VERSIONS.productAnalyzer,ai_provider:meta.provider,ai_model:meta.model,input_payload:{product_id:product.id,title:product.title},output_payload:result.output,error_message:result.error ?? null,latency_ms:Date.now()-started,status:result.status});
+  } catch {
+    await failWorkflowRequest(requestId);
+    throw new Error('บันทึก AI Brief ไม่สำเร็จ กรุณาลองใหม่');
+  }
   revalidatePath(`/projects/${projectId}/brief`);
 }
 
-export async function generateScriptAction(projectId:string, duration:ScriptDuration) {
+export async function generateBriefFromForm(projectId:string, formData:FormData) {
+  return generateBriefAction(projectId, readRequestId(formData));
+}
+
+export async function generateScriptAction(projectId:string, duration:ScriptDuration, requestId=crypto.randomUUID()) {
   if (!durations.includes(duration)) throw new Error('ระยะเวลาสคริปต์ไม่ถูกต้อง');
   const started = Date.now();
   const { supabase, user, project } = await requireOwnedProject(projectId);
   const [{ data:brief, error:briefError }, product] = await Promise.all([
-    supabase.from('ai_briefs').select('*').eq('project_id',projectId).eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle(),
+    supabase.from('ai_briefs').select('*').eq('project_id',projectId).eq('user_id',user.id).is('superseded_at',null).order('created_at',{ascending:false}).limit(1).maybeSingle(),
     loadProductForProject(supabase, project, user.id),
   ]);
   if (briefError || !brief) throw new Error('กรุณาสร้าง AI Brief ก่อนสร้างสคริปต์');
-  const result = await generateReviewScript({title:product.title,duration,risk_flags:product.risk_flags ?? []});
-  const meta = aiMetadata();
-  const { error } = await supabase.from('scripts').insert({
-    user_id:user.id,project_id:projectId,duration_seconds:duration,...result.output,
-    prompt_version:PROMPT_VERSIONS.scriptGenerator,ai_provider:meta.provider,ai_model:meta.model,
-  });
-  if (error) throw new Error(`บันทึกสคริปต์ไม่สำเร็จ: ${error.message}`);
-  const { error:updateError } = await supabase.from('review_projects').update({status:'script_generated',compliance_status:null,approval_status:'pending',has_affiliate_disclosure:Boolean(result.output.affiliate_disclosure)}).eq('id',projectId).eq('user_id',user.id);
-  if (updateError) throw new Error(`อัปเดตสถานะสคริปต์ไม่สำเร็จ: ${updateError.message}`);
-  await clearPendingPublishingQueue(supabase, user.id, projectId);
-  await logAiEvent({user_id:user.id,project_id:projectId,task_type:'generate_script',prompt_version:PROMPT_VERSIONS.scriptGenerator,ai_provider:meta.provider,ai_model:meta.model,input_payload:{product_id:product.id,duration,brief_id:brief.id},output_payload:result.output,error_message:result.error ?? null,latency_ms:Date.now()-started,status:result.status});
+  const {admin,claimed}=await claimWorkflowRequest({requestId,userId:user.id,projectId,actionType:'generate_script'});
+  if(!claimed) return;
+  try {
+    const result = await generateReviewScript({title:product.title,duration,risk_flags:product.risk_flags ?? []});
+    const meta = aiMetadata();
+    const payload={duration_seconds:duration,...result.output,prompt_version:PROMPT_VERSIONS.scriptGenerator,ai_provider:meta.provider,ai_model:meta.model};
+    const { error } = await admin.rpc('record_script',{p_request_id:requestId,p_user_id:user.id,p_project_id:projectId,p_payload:payload});
+    if (error) throw new Error('record_failed');
+    await logAiEvent({user_id:user.id,project_id:projectId,request_id:requestId,task_type:'generate_script',prompt_version:PROMPT_VERSIONS.scriptGenerator,ai_provider:meta.provider,ai_model:meta.model,input_payload:{product_id:product.id,duration,brief_id:brief.id},output_payload:result.output,error_message:result.error ?? null,latency_ms:Date.now()-started,status:result.status});
+  } catch {
+    await failWorkflowRequest(requestId);
+    throw new Error('บันทึกสคริปต์ไม่สำเร็จ กรุณาลองใหม่');
+  }
   revalidatePath(`/projects/${projectId}/script`);
 }
 
 export async function generateScriptFromForm(projectId:string, formData:FormData) {
-  return generateScriptAction(projectId, Number(formData.get('duration')) as ScriptDuration);
+  return generateScriptAction(projectId, Number(formData.get('duration')) as ScriptDuration, readRequestId(formData));
 }
 
-export async function runComplianceAction(projectId:string) {
+export async function runComplianceAction(projectId:string, phase:CompliancePhase='preliminary', requestId=crypto.randomUUID()) {
+  if (phase !== 'preliminary' && phase !== 'final') throw new Error('รอบการตรวจ Compliance ไม่ถูกต้อง');
   const started = Date.now();
   const { supabase, user, project } = await requireOwnedProject(projectId);
   const [{data:script,error:scriptError},{data:assets,error:assetsError},product] = await Promise.all([
-    supabase.from('scripts').select('*').eq('project_id',projectId).eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle(),
+    supabase.from('scripts').select('*').eq('project_id',projectId).eq('user_id',user.id).is('superseded_at',null).order('created_at',{ascending:false}).limit(1).maybeSingle(),
     supabase.from('media_assets').select('id,type').eq('project_id',projectId).eq('user_id',user.id),
     loadProductForProject(supabase,project,user.id),
   ]);
   if (scriptError || !script) throw new Error('กรุณาสร้างสคริปต์ก่อนตรวจ Compliance');
-  if (assetsError) throw new Error(`โหลด Media Assets ไม่สำเร็จ: ${assetsError.message}`);
-  const result = await checkCompliance({text:script.full_script ?? '',usesAiMedia:Boolean(assets?.length),hasAiContentLabel:project.has_ai_content_label,sensitiveProduct:Boolean(product.risk_flags?.length)});
-  const meta = aiMetadata();
-  const { error } = await supabase.from('compliance_checks').insert({
-    user_id:user.id,project_id:projectId,...result.output,
-    prompt_version:PROMPT_VERSIONS.complianceChecker,ai_provider:meta.provider,ai_model:meta.model,
-  });
-  if (error) throw new Error(`บันทึก Compliance ไม่สำเร็จ: ${error.message}`);
-  const projectStatus = result.output.status === 'PASS' ? 'compliance_checked' : result.output.status === 'WARNING' ? 'warning' : 'blocked';
-  const { error:updateError } = await supabase.from('review_projects').update({compliance_status:result.output.status,status:projectStatus,approval_status:'pending'}).eq('id',projectId).eq('user_id',user.id);
-  if (updateError) throw new Error(`อัปเดตสถานะ Compliance ไม่สำเร็จ: ${updateError.message}`);
-  await clearPendingPublishingQueue(supabase, user.id, projectId);
-  await logAiEvent({user_id:user.id,project_id:projectId,task_type:'compliance_check',prompt_version:PROMPT_VERSIONS.complianceChecker,ai_provider:meta.provider,ai_model:meta.model,input_payload:{script_id:script.id,uses_ai_media:Boolean(assets?.length)},output_payload:result.output,error_message:result.error ?? null,latency_ms:Date.now()-started,status:result.status});
+  if (assetsError) throw new Error('โหลด Media Assets ไม่สำเร็จ กรุณาลองใหม่');
+  const actionType=phase==='preliminary'?'run_preliminary_compliance':'run_final_compliance';
+  const {admin,claimed}=await claimWorkflowRequest({requestId,userId:user.id,projectId,actionType});
+  if(!claimed) return;
+  try {
+    const result = await checkCompliance({
+      text:script.full_script ?? '',
+      usesAiMedia:phase==='final' && Boolean(assets?.length),
+      hasAiContentLabel:phase==='preliminary' || project.has_ai_content_label,
+      sensitiveProduct:Boolean(product.risk_flags?.length),
+    });
+    const meta = aiMetadata();
+    const payload={...result.output,prompt_version:PROMPT_VERSIONS.complianceChecker,ai_provider:meta.provider,ai_model:meta.model};
+    const { error } = await admin.rpc('record_compliance_check',{p_request_id:requestId,p_user_id:user.id,p_project_id:projectId,p_phase:phase,p_payload:payload});
+    if (error) throw new Error('record_failed');
+    await logAiEvent({user_id:user.id,project_id:projectId,request_id:requestId,task_type:`compliance_check_${phase}`,prompt_version:PROMPT_VERSIONS.complianceChecker,ai_provider:meta.provider,ai_model:meta.model,input_payload:{script_id:script.id,phase,uses_ai_media:phase==='final' && Boolean(assets?.length)},output_payload:result.output,error_message:result.error ?? null,latency_ms:Date.now()-started,status:result.status});
+  } catch {
+    await failWorkflowRequest(requestId);
+    throw new Error('บันทึก Compliance ไม่สำเร็จ กรุณาลองใหม่');
+  }
   revalidatePath(`/projects/${projectId}/compliance`);
+}
+
+export async function runComplianceFromForm(projectId:string, formData:FormData) {
+  const phase=formData.get('phase')==='final'?'final':'preliminary';
+  return runComplianceAction(projectId, phase, readRequestId(formData));
 }

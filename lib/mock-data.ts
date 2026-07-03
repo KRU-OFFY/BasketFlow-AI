@@ -26,6 +26,7 @@ export const mockProject: ReviewProject = {
   approval_status: 'pending',
   has_affiliate_disclosure: true,
   has_ai_content_label: true,
+  media_revision: 0,
   created_at: new Date('2026-06-20T01:00:00.000Z').toISOString(),
   updated_at: new Date('2026-06-20T01:30:00.000Z').toISOString(),
 };

@@ -3,7 +3,7 @@ import test from 'node:test';
 import { ruleBasedCompliance } from '../lib/validators/compliance.ts';
 import { THAI_AFFILIATE_DISCLOSURE } from '../lib/ai/constants.ts';
 import { looksLikeShopeeLink } from '../lib/validators/product.ts';
-import { canMoveToReadyToPublish } from '../lib/validators/publishing.ts';
+import { canMoveToReadyToPublish, canMoveVersionToReadyToPublish } from '../lib/validators/publishing.ts';
 
 test('blocks dangerous Thai claims', () => {
   const result = ruleBasedCompliance({ text:'สินค้านี้ใช้แล้วหายขาด เห็นผลทันที ปลอดภัย 100%' });
@@ -27,6 +27,22 @@ test('publishing gate requires every server-side condition', () => {
   assert.equal(canMoveToReadyToPublish({ ...ready, hasAffiliateDisclosure:false }), false);
   assert.equal(canMoveToReadyToPublish({ ...ready, approvalStatus:'rejected' }), false);
   assert.equal(canMoveToReadyToPublish({ ...ready, complianceStatus:'BLOCK' }), false);
+});
+
+test('version-bound publishing gate rejects stale or preliminary state', () => {
+  const ready={
+    complianceStatus:'PASS',approvalStatus:'approved',hasAffiliateDisclosure:true,hasAiContentLabel:true,
+    compliancePhase:'final',archivedAt:null,pendingRequestCount:0,currentScriptId:'script-2',
+    complianceId:'check-2',complianceScriptId:'script-2',currentMediaRevision:3,
+    complianceMediaRevision:3,approvalScriptId:'script-2',approvalComplianceId:'check-2',approvalMediaRevision:3,
+  } as const;
+  assert.equal(canMoveVersionToReadyToPublish(ready),true);
+  assert.equal(canMoveVersionToReadyToPublish({...ready,compliancePhase:'preliminary'}),false);
+  assert.equal(canMoveVersionToReadyToPublish({...ready,approvalScriptId:'script-1'}),false);
+  assert.equal(canMoveVersionToReadyToPublish({...ready,approvalComplianceId:'check-1'}),false);
+  assert.equal(canMoveVersionToReadyToPublish({...ready,complianceMediaRevision:2}),false);
+  assert.equal(canMoveVersionToReadyToPublish({...ready,pendingRequestCount:1}),false);
+  assert.equal(canMoveVersionToReadyToPublish({...ready,archivedAt:'2026-07-03T00:00:00Z'}),false);
 });
 
 test('safe disclosed script passes', () => {
