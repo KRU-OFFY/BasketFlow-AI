@@ -1,2 +1,4 @@
-const steps=['product_imported','brief_generated','script_generated','compliance_checked','media_generated','pending_approval','ready_to_publish'];
-export function WorkflowStepper({current}:{current?:string}){return <div className="flex flex-wrap gap-2">{steps.map(s=><span className={`rounded-full px-3 py-2 text-xs ${s===current?'bg-orange text-white':'bg-slate-100 text-slate-600'}`} key={s}>{s}</span>)}</div>}
+import { projectStatusLabel } from '@/lib/workflow/status';
+
+const steps=['product_imported','brief_generated','script_generated','compliance_checked','media_generated','pending_approval','approved','ready_to_publish'];
+export function WorkflowStepper({current}:{current?:string}){return <div aria-label="สถานะโปรเจกต์" className="flex flex-wrap gap-2">{steps.map(s=><span aria-current={s===current?'step':undefined} className={`rounded-full px-3 py-2 text-xs ${s===current?'bg-orange text-white':'bg-slate-100 text-slate-600'}`} key={s}>{projectStatusLabel(s)}</span>)}{current && !steps.includes(current)?<span aria-current="step" className={`rounded-full px-3 py-2 text-xs text-white ${current==='blocked'||current==='rejected'?'bg-red-600':'bg-amber-500'}`}>{projectStatusLabel(current)}</span>:null}</div>}

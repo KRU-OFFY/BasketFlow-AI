@@ -1,15 +1,6 @@
 import Link from 'next/link';
 import { BasketPilotLogo } from '@/components/brand/basketpilot-logo';
-
-const links = [
-  ['/dashboard', 'แดชบอร์ด'],
-  ['/products', 'สินค้า'],
-  ['/projects', 'โปรเจกต์'],
-  ['/posting-queue', 'คิวเผยแพร่'],
-  ['/analytics', 'Analytics'],
-  ['/settings', 'ตั้งค่า'],
-  ['/settings/ai-logs', 'AI Logs'],
-];
+import { NavigationLinks } from './navigation-links';
 
 export function Sidebar() {
   return (
@@ -18,15 +9,7 @@ export function Sidebar() {
         <BasketPilotLogo inverted />
       </Link>
       <nav className="space-y-2">
-        {links.map(([href, label]) => (
-          <Link
-            className="block rounded-xl px-4 py-3 text-slate-200 transition hover:bg-white/10 hover:text-white"
-            href={href}
-            key={href}
-          >
-            {label}
-          </Link>
-        ))}
+        <NavigationLinks />
       </nav>
     </aside>
   );

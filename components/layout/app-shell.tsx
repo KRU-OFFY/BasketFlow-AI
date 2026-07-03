@@ -1,7 +1,7 @@
 import { BasketPilotLogo } from '@/components/brand/basketpilot-logo';
 import { logout } from '@/actions/auth';
-import Link from 'next/link';
 import { Sidebar } from './sidebar';
+import { NavigationLinks } from './navigation-links';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -20,7 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <nav className="mt-4 flex gap-3 overflow-x-auto border-t border-slate-100 pt-4 text-sm font-bold text-navy lg:hidden">
-            {[['/dashboard','แดชบอร์ด'],['/products','สินค้า'],['/projects','โปรเจกต์'],['/posting-queue','คิวเผยแพร่'],['/analytics','Analytics'],['/settings','ตั้งค่า']].map(([href,label])=><Link className="whitespace-nowrap" href={href} key={href}>{label}</Link>)}
+            <NavigationLinks mobile />
           </nav>
         </header>
         {children}

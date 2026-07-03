@@ -7,7 +7,7 @@ import { createAdminSupabase } from '@/lib/supabase/admin';
 export type ProductActionState = { error?:string; fields?:Record<string,string> };
 
 export async function createProduct(formData: FormData): Promise<ProductActionState> {
-  const fields = Object.fromEntries(['title','category','affiliate_link','image_url','price','commission_rate'].map((key) => [key, String(formData.get(key) ?? '').trim()]));
+  const fields = Object.fromEntries(['title','category','affiliate_link','product_url','image_url','price','commission_rate'].map((key) => [key, String(formData.get(key) ?? '').trim()]));
   if (!fields.title) return { error:'กรุณากรอกชื่อสินค้า', fields };
   if (!looksLikeShopeeLink(fields.affiliate_link)) return { error:'ลิงก์ Affiliate ต้องเป็น URL ของ Shopee ที่รองรับเท่านั้น', fields };
   const price = fields.price ? Number(fields.price) : null;
@@ -22,6 +22,7 @@ export async function createProduct(formData: FormData): Promise<ProductActionSt
     title:fields.title,
     category:fields.category || null,
     affiliate_link:fields.affiliate_link,
+    product_url:fields.product_url || null,
     source:'manual',
     affiliate_validation_status:'validated',
     image_url:fields.image_url || null,

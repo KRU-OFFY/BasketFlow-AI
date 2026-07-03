@@ -1,12 +1,16 @@
-import { runComplianceFromForm } from '@/actions/ai';
+import Link from 'next/link';
+import { runComplianceStateAction } from '@/actions/ai';
+import { WorkflowActionForm } from '@/components/actions/workflow-action-form';
 import { AppShell } from '@/components/layout/app-shell';
+import { ProjectWorkflowNav } from '@/components/projects/project-workflow-nav';
 import { Badge, Card } from '@/components/ui/card';
 import { getOwnedProjectPage } from '@/lib/supabase/page';
 
 function list(value:unknown):string[]{return Array.isArray(value)?value.map(String):[];}
 
-export default async function Compliance({params}:{params:Promise<{id:string}>}) {
+export default async function Compliance({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{phase?:string}>}) {
   const {id}=await params;
+  const selectedPhase=(await searchParams).phase==='final'?'final':'preliminary';
   const {supabase,user}=await getOwnedProjectPage(id);
   const [scriptResult,preliminaryResult,finalResult]=await Promise.all([
     supabase.from('scripts').select('id').eq('project_id',id).eq('user_id',user.id).is('superseded_at',null).order('created_at',{ascending:false}).limit(1).maybeSingle(),
@@ -15,22 +19,17 @@ export default async function Compliance({params}:{params:Promise<{id:string}>})
   ]);
   const loadError=scriptResult.error || preliminaryResult.error || finalResult.error;
   if(loadError) throw new Error('โหลด Compliance ไม่สำเร็จ');
-  const action=runComplianceFromForm.bind(null,id);
+  const action=runComplianceStateAction.bind(null,id);
   const checks=[
     {phase:'preliminary',title:'Preliminary Check',description:'ตรวจข้อความและคำกล่าวอ้างหลังสร้างสคริปต์',check:preliminaryResult.data},
     {phase:'final',title:'Final Safety Check',description:'ตรวจเวอร์ชันปัจจุบันหลัง Media และ AI Content Label',check:finalResult.data},
   ] as const;
 
-  return <AppShell>
+  return <AppShell><ProjectWorkflowNav current={selectedPhase} projectId={id}/>
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div><h1 className="text-3xl font-bold">Compliance Center</h1><p className="mt-2 text-slate-500">ต้องผ่าน Final Safety Check จึงจะอนุมัติและเข้าคิวเผยแพร่ได้</p></div>
       <div className="flex flex-wrap gap-3">
-        {checks.map(({phase,title})=><form action={action} key={phase}>
-          <input name="request_id" type="hidden" value={crypto.randomUUID()}/>
-          <input name="phase" type="hidden" value={phase}/>
-          <button className="btn" disabled={!scriptResult.data}>{phase==='preliminary'?'ตรวจเบื้องต้น':'ตรวจขั้นสุดท้าย'}</button>
-          <span className="sr-only">{title}</span>
-        </form>)}
+        {checks.map(({phase,title,check})=><WorkflowActionForm action={action} confirmMessage={check?`รัน ${title} ใหม่หรือไม่? ผลเดิมและ Approval ที่เกี่ยวข้องจะหมดอายุ`:''} disabled={!scriptResult.data} hiddenFields={{phase}} initialRequestId={crypto.randomUUID()} key={phase} label={phase==='preliminary'?'ตรวจเบื้องต้น':'ตรวจขั้นสุดท้าย'} pendingLabel="กำลังตรวจความปลอดภัย…"/>)}
       </div>
     </div>
     {!scriptResult.data?<Card className="mt-6 text-center">กรุณาสร้างสคริปต์ก่อน</Card>:<div className="mt-6 space-y-5">
@@ -45,5 +44,7 @@ export default async function Compliance({params}:{params:Promise<{id:string}>})
         </Card>;
       })}
     </div>}
+    {selectedPhase==='preliminary' && preliminaryResult.data?.status==='PASS'?<div className="mt-6 flex justify-end"><Link className="btn" href={`/projects/${id}/media`}>ไป Media Studio</Link></div>:null}
+    {selectedPhase==='final' && finalResult.data?.status==='PASS'?<div className="mt-6 flex justify-end"><Link className="btn" href={`/projects/${id}/approval`}>ไป Human Approval</Link></div>:null}
   </AppShell>;
 }
