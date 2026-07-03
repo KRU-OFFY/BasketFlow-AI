@@ -4,6 +4,7 @@ import { ruleBasedCompliance } from '../lib/validators/compliance.ts';
 import { THAI_AFFILIATE_DISCLOSURE } from '../lib/ai/constants.ts';
 import { looksLikeShopeeLink } from '../lib/validators/product.ts';
 import { canMoveToReadyToPublish, canMoveVersionToReadyToPublish } from '../lib/validators/publishing.ts';
+import { mockScript } from '../lib/ai/script-generator.ts';
 
 test('blocks dangerous Thai claims', () => {
   const result = ruleBasedCompliance({ text:'สินค้านี้ใช้แล้วหายขาด เห็นผลทันที ปลอดภัย 100%' });
@@ -53,4 +54,11 @@ test('missing AI label produces a warning when AI media exists', () => {
   const result=ruleBasedCompliance({text:`รีวิวตามข้อมูลจริง ${THAI_AFFILIATE_DISCLOSURE}`,usesAiMedia:true,hasAiContentLabel:false});
   assert.equal(result.status,'WARNING');
   assert.ok(result.missing_requirements.includes('missing_ai_content_label'));
+});
+
+test('mock script includes hook candidates and selected hook',()=>{
+  const script=mockScript({title:'แก้วทดสอบ',duration:30});
+  assert.ok(script.hook_candidates.length>=3);
+  assert.equal(script.selected_hook,script.hook);
+  assert.ok(script.full_script.includes(THAI_AFFILIATE_DISCLOSURE));
 });

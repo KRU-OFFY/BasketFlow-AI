@@ -2,6 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireOwnedProject } from '@/lib/supabase/ownership';
 import { claimWorkflowRequest, failWorkflowRequest, readRequestId } from '@/lib/actions/workflow-request';
+import { actionFailure, actionSuccess, type ActionState } from '@/lib/actions/state';
 
 export async function approveProject(projectId:string, requestId=crypto.randomUUID()) {
   const { supabase, user, project } = await requireOwnedProject(projectId);
@@ -37,4 +38,16 @@ export async function rejectProjectFromForm(projectId:string, formData:FormData)
 
 export async function approveProjectFromForm(projectId:string, formData:FormData) {
   return approveProject(projectId, readRequestId(formData));
+}
+
+export async function approveProjectStateAction(projectId:string,_state:ActionState,formData:FormData):Promise<ActionState>{
+  const requestId=readRequestId(formData);
+  try{await approveProject(projectId,requestId);return actionSuccess('อนุมัติเวอร์ชันปัจจุบันสำเร็จ',requestId);}
+  catch(error){return actionFailure(error,requestId);}
+}
+
+export async function rejectProjectStateAction(projectId:string,_state:ActionState,formData:FormData):Promise<ActionState>{
+  const requestId=readRequestId(formData);
+  try{await rejectProject(projectId,String(formData.get('reason')??''),requestId);return actionSuccess('ปฏิเสธโปรเจกต์แล้ว',requestId);}
+  catch(error){return actionFailure(error,requestId);}
 }

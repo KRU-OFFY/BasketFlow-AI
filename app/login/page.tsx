@@ -1,6 +1,7 @@
 import { login, signup } from '@/actions/auth';
 import { BasketPilotLogo, BASKETPILOT_TAGLINE } from '@/components/brand/basketpilot-logo';
 import { Card } from '@/components/ui/card';
+import { SubmitButton } from '@/components/actions/submit-button';
 
 export default async function LoginPage({searchParams}:{searchParams:Promise<{error?:string}>}) {
   const {error}=await searchParams;
@@ -11,7 +12,7 @@ export default async function LoginPage({searchParams}:{searchParams:Promise<{er
           <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-orange/30 blur-3xl" />
           <div className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-purple/40 blur-3xl" />
           <div className="relative z-10">
-            <BasketPilotLogo inverted showTagline />
+            <BasketPilotLogo idPrefix="login-panel" inverted showTagline />
             <div className="mt-16 max-w-md">
               <p className="text-sm font-black uppercase tracking-[0.28em] text-mango">AI Affiliate Content Factory</p>
               <h1 className="mt-4 text-5xl font-black leading-tight">
@@ -31,7 +32,7 @@ export default async function LoginPage({searchParams}:{searchParams:Promise<{er
 
         <section className="p-6 md:p-10">
           <div className="mb-8 md:hidden">
-            <BasketPilotLogo showTagline />
+            <BasketPilotLogo idPrefix="login-form" showTagline />
           </div>
           <Card className="border-0 shadow-none">
             <h2 className="text-2xl font-black text-navy">เข้าสู่ระบบ BasketPilot AI</h2>
@@ -39,17 +40,18 @@ export default async function LoginPage({searchParams}:{searchParams:Promise<{er
             {error ? <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700" role="alert">{error}</p> : null}
 
             <form action={login} className="mt-8 space-y-3">
-              <input autoComplete="email" className="input" name="email" required type="email" placeholder="อีเมล" />
-              <input autoComplete="current-password" className="input" name="password" required type="password" placeholder="รหัสผ่าน" />
-              <button className="btn w-full">Login</button>
+              <label className="block"><span className="label">อีเมล</span><input autoComplete="email" className="input mt-1" name="email" required type="email" /></label>
+              <label className="block"><span className="label">รหัสผ่าน</span><input autoComplete="current-password" className="input mt-1" name="password" required type="password" /></label>
+              <SubmitButton className="btn w-full" label="เข้าสู่ระบบ" pendingLabel="กำลังเข้าสู่ระบบ…" />
             </form>
 
             <form action={signup} className="mt-8 space-y-3 border-t pt-8">
               <p className="text-sm font-bold text-slate-500">สมัครใช้งานใหม่</p>
-              <input autoComplete="name" className="input" name="full_name" required placeholder="ชื่อ-นามสกุล" />
-              <input autoComplete="email" className="input" name="email" required type="email" placeholder="อีเมลสมัครใหม่" />
-              <input autoComplete="new-password" className="input" minLength={8} name="password" required type="password" placeholder="รหัสผ่านอย่างน้อย 8 ตัวอักษร" />
-              <button className="btn btn-secondary w-full">Signup</button>
+              <label className="block"><span className="label">ชื่อ-นามสกุล</span><input autoComplete="name" className="input mt-1" name="full_name" required /></label>
+              <label className="block"><span className="label">อีเมลสมัครใหม่</span><input autoComplete="email" className="input mt-1" name="email" required type="email" /></label>
+              <label className="block"><span className="label">รหัสผ่านอย่างน้อย 8 ตัวอักษร</span><input aria-describedby="signup-password-help" autoComplete="new-password" className="input mt-1" minLength={8} name="password" required type="password" /></label>
+              <p className="text-xs text-slate-500" id="signup-password-help">ควรใช้ตัวอักษร ตัวเลข และอักขระพิเศษร่วมกัน</p>
+              <SubmitButton className="btn btn-secondary w-full" label="สมัครใช้งาน" pendingLabel="กำลังสมัคร…" />
             </form>
           </Card>
         </section>

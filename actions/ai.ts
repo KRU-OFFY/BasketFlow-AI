@@ -7,6 +7,7 @@ import { checkCompliance } from '@/lib/ai/compliance-checker';
 import { PROMPT_VERSIONS } from '@/lib/ai/prompt-versions';
 import { logAiEvent } from '@/lib/ai/logger';
 import { claimWorkflowRequest, failWorkflowRequest, readRequestId } from '@/lib/actions/workflow-request';
+import { actionFailure, actionSuccess, type ActionState } from '@/lib/actions/state';
 
 const durations = [15,30,60,90] as const;
 export type ScriptDuration = typeof durations[number];
@@ -47,6 +48,12 @@ export async function generateBriefFromForm(projectId:string, formData:FormData)
   return generateBriefAction(projectId, readRequestId(formData));
 }
 
+export async function generateBriefStateAction(projectId:string,_state:ActionState,formData:FormData):Promise<ActionState>{
+  const requestId=readRequestId(formData);
+  try{await generateBriefAction(projectId,requestId);return actionSuccess('สร้าง AI Brief สำเร็จ',requestId);}
+  catch(error){return actionFailure(error,requestId);}
+}
+
 export async function generateScriptAction(projectId:string, duration:ScriptDuration, requestId=crypto.randomUUID()) {
   if (!durations.includes(duration)) throw new Error('ระยะเวลาสคริปต์ไม่ถูกต้อง');
   const started = Date.now();
@@ -74,6 +81,12 @@ export async function generateScriptAction(projectId:string, duration:ScriptDura
 
 export async function generateScriptFromForm(projectId:string, formData:FormData) {
   return generateScriptAction(projectId, Number(formData.get('duration')) as ScriptDuration, readRequestId(formData));
+}
+
+export async function generateScriptStateAction(projectId:string,_state:ActionState,formData:FormData):Promise<ActionState>{
+  const requestId=readRequestId(formData);
+  try{await generateScriptAction(projectId,Number(formData.get('duration')) as ScriptDuration,requestId);return actionSuccess('สร้างสคริปต์สำเร็จ',requestId);}
+  catch(error){return actionFailure(error,requestId);}
 }
 
 export async function runComplianceAction(projectId:string, phase:CompliancePhase='preliminary', requestId=crypto.randomUUID()) {
@@ -112,4 +125,11 @@ export async function runComplianceAction(projectId:string, phase:CompliancePhas
 export async function runComplianceFromForm(projectId:string, formData:FormData) {
   const phase=formData.get('phase')==='final'?'final':'preliminary';
   return runComplianceAction(projectId, phase, readRequestId(formData));
+}
+
+export async function runComplianceStateAction(projectId:string,_state:ActionState,formData:FormData):Promise<ActionState>{
+  const requestId=readRequestId(formData);
+  const phase=formData.get('phase')==='final'?'final':'preliminary';
+  try{await runComplianceAction(projectId,phase,requestId);return actionSuccess(phase==='final'?'ตรวจ Final Safety Check สำเร็จ':'ตรวจ Preliminary Check สำเร็จ',requestId);}
+  catch(error){return actionFailure(error,requestId);}
 }

@@ -4,12 +4,17 @@ import { revalidatePath } from 'next/cache';
 import { requireOwnedProduct, requireOwnedProject } from '@/lib/supabase/ownership';
 import { canMoveToReadyToPublish } from '@/lib/validators/publishing';
 import { claimWorkflowRequest, failWorkflowRequest, readRequestId } from '@/lib/actions/workflow-request';
+import { actionFailure, actionSuccess, type ActionState } from '@/lib/actions/state';
 
-export async function createProjectFromProduct(productId:string, title?:string, requestId=crypto.randomUUID()) {
+async function createProjectRecord(productId:string,title:string|undefined,requestId:string){
   const { user, product } = await requireOwnedProduct(productId);
   const projectTitle = title?.trim() || `รีวิว ${product.title}`;
   const {admin,claimed}=await claimWorkflowRequest({requestId,userId:user.id,actionType:'create_project'});
-  if(!claimed) return;
+  if(!claimed){
+    const existing=await admin.from('workflow_action_requests').select('result_id,status').eq('id',requestId).eq('user_id',user.id).maybeSingle();
+    if(existing.data?.status==='succeeded' && existing.data.result_id)return existing.data.result_id as string;
+    throw new Error('รายการนี้กำลังดำเนินการ กรุณารอสักครู่');
+  }
   const { data, error } = await admin.rpc('record_review_project', {
     p_request_id:requestId,p_user_id:user.id,p_product_id:product.id,p_title:projectTitle,
   });
@@ -17,7 +22,20 @@ export async function createProjectFromProduct(productId:string, title?:string, 
     await failWorkflowRequest(requestId);
     throw new Error('สร้างโปรเจกต์ไม่สำเร็จ กรุณาลองใหม่');
   }
-  redirect(`/projects/${data}`);
+  return data as string;
+}
+
+export async function createProjectFromProduct(productId:string, title?:string, requestId=crypto.randomUUID()) {
+  const projectId=await createProjectRecord(productId,title,requestId);
+  redirect(`/projects/${projectId}`);
+}
+
+export async function createProjectStateAction(productId:string,_state:ActionState,formData:FormData):Promise<ActionState>{
+  const requestId=readRequestId(formData);
+  let projectId:string;
+  try{projectId=await createProjectRecord(productId,undefined,requestId);}
+  catch(error){return actionFailure(error,requestId);}
+  redirect(`/projects/${projectId}`);
 }
 
 export async function createProjectFromProductForm(productId:string, formData:FormData) {
@@ -42,6 +60,12 @@ export async function archiveProject(projectId:string, requestId=crypto.randomUU
 
 export async function archiveProjectFromForm(projectId:string,formData:FormData){
   return archiveProject(projectId,readRequestId(formData));
+}
+
+export async function archiveProjectStateAction(projectId:string,_state:ActionState,formData:FormData):Promise<ActionState>{
+  const requestId=readRequestId(formData);
+  try{await archiveProject(projectId,requestId);return actionSuccess('เก็บโปรเจกต์เข้าคลังแล้ว',requestId);}
+  catch(error){return actionFailure(error,requestId);}
 }
 
 export async function moveToPublishingQueue(projectId:string, requestId=crypto.randomUUID()) {
@@ -71,4 +95,10 @@ export async function moveToPublishingQueue(projectId:string, requestId=crypto.r
 
 export async function moveToPublishingQueueFromForm(projectId:string, formData:FormData) {
   return moveToPublishingQueue(projectId, readRequestId(formData));
+}
+
+export async function moveToPublishingQueueStateAction(projectId:string,_state:ActionState,formData:FormData):Promise<ActionState>{
+  const requestId=readRequestId(formData);
+  try{await moveToPublishingQueue(projectId,requestId);return actionSuccess('ส่งเข้า Publishing Queue สำเร็จ',requestId);}
+  catch(error){return actionFailure(error,requestId);}
 }

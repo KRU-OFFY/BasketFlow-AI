@@ -2,6 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireOwnedProject } from '@/lib/supabase/ownership';
 import { claimWorkflowRequest, failWorkflowRequest, readRequestId } from '@/lib/actions/workflow-request';
+import { actionFailure, actionSuccess, type ActionState } from '@/lib/actions/state';
 
 const mediaTypes = ['voiceover','avatar','subtitle','video_preview','rendered_video'] as const;
 export type MediaType = typeof mediaTypes[number];
@@ -37,4 +38,10 @@ export async function updateAiContentLabelFromForm(projectId:string, formData:Fo
 
 export async function createMediaAssetFromForm(projectId:string, type:MediaType, formData:FormData) {
   return createMediaAsset(projectId, type, readRequestId(formData));
+}
+
+export async function createMediaAssetStateAction(projectId:string,type:MediaType,_state:ActionState,formData:FormData):Promise<ActionState>{
+  const requestId=readRequestId(formData);
+  try{await createMediaAsset(projectId,type,requestId);return actionSuccess('สร้าง Media placeholder สำเร็จ',requestId);}
+  catch(error){return actionFailure(error,requestId);}
 }

@@ -84,6 +84,43 @@
 ## สถานะ
 
 - Baseline evidence: เสร็จแล้ว
-- PR 1 Security/Data Integrity: กำลังดำเนินการ
-- PR 2 Product Structure/UX: รอดำเนินการหลัง PR 1
-- Post-fix evidence: ยังไม่บันทึก
+- PR 1 Security/Data Integrity: โค้ดและ Local Supabase integration ผ่านแล้ว; รอ Preview secret/production backup ก่อนใช้งานกับฐานข้อมูล Production
+- PR 2 Product Structure/UX: โค้ดและ browser flow ท้องถิ่นผ่านแล้ว
+- Post-fix evidence: บันทึกแล้วใน `after/`
+
+## ผลตรวจหลังแก้ — 3 กรกฎาคม 2569
+
+ทดสอบกับ Local Supabase และ Mock AI โดยไม่เปลี่ยนข้อมูล Production เส้นทางที่ผ่านครบคือ Signup → Dashboard → Product Discovery/Import → Project → AI Brief → Hook/Script → Preliminary Compliance → Media/AI Label → Final Compliance → Approval → Publishing Queue → AI Logs/CSV → Analytics
+
+| ลำดับ | หน้าจอ | หลักฐาน | ผลตรวจย่อ |
+|---|---|---|---|
+| 1 | Dashboard | `after/01-dashboard.png` | ใช้ข้อมูลจริงและสรุป Safety Gate |
+| 2 | Product Discovery | `after/02-product-discovery.png` | Mock provider ทำงานและไม่ scraping |
+| 3 | Project overview | `after/03-project-overview.png` | สถานะไทยและ workflow navigation ร่วม |
+| 4 | AI Brief | `after/04-brief.png` | pending/success state และ CTA ไป Script |
+| 5 | Hook / Script | `after/05-script.png` | hook candidates, selected hook และ disclosure |
+| 6 | Preliminary Compliance | `after/06-preliminary-compliance.png` | PASS ก่อนเข้า Media |
+| 7 | Media / AI Label | `after/07-media.png` | Media revision ปัจจุบันและ AI label ถูกบันทึก |
+| 8 | Final Compliance | `after/08-final-compliance.png` | PASS ผูก script และ media revision ปัจจุบัน |
+| 9 | Human Approval | `after/09-approval.png` | Approval ผูก final check/version และ checklist ครบ |
+| 10 | Publishing Queue | `after/10-queue.png` | Queue row จริงและสถานะภาษาไทย |
+| 11 | AI Logs | `after/11-ai-logs.png` | Log จริง สถานะไทย และ CSV ดาวน์โหลดได้ |
+| 12 | Analytics | `after/12-analytics.png` | นับผล Final Compliance ปัจจุบันต่อโปรเจกต์ |
+| 13 | Mobile / Keyboard | `after/13-mobile-dashboard.png` | กว้าง 390px ไม่มี page overflow, AI Logs เข้าถึงได้, focus แสดงที่ปุ่มออกจากระบบ |
+
+### ผลเชิงเทคนิค
+
+- Unit tests: ผ่าน 12 รายการ; integration case ถูกแยกรันพร้อม Local Supabase และผ่าน 1 รายการ
+- Browser JWT ถูกปฏิเสธเมื่อพยายามเขียนตาราง safety-critical; RLS แยกผู้ใช้สองบัญชี
+- Idempotent request, RPC rollback, stale compliance/approval และ version-bound queue ผ่าน integration test
+- `schema.sql` replay และ Supabase DB lint ผ่าน
+- TypeScript และ Next.js production build ผ่าน
+- `npm audit`: ไม่พบช่องโหว่
+- Browser console รอบสุดท้าย: 0 error; CSV มีเฉพาะ metadata ของ log และไม่มี payload ละเอียดอ่อน
+
+### ข้อจำกัดที่ยังเหลือ
+
+- การตรวจนี้ไม่ใช่การรับรอง WCAG หรือ penetration test เต็มรูปแบบ
+- Shopee Open API ยังปิดด้วย feature flag จนกว่าจะมี credential/สิทธิ์จากช่องทางทางการ
+- ต้องตั้ง `SUPABASE_SERVICE_ROLE_KEY` เป็น Vercel Sensitive Environment Variable และทดสอบ Preview ก่อน Production
+- ต้องสำรอง Production database และเปิด Leaked Password Protection ก่อนรัน migration/maintenance บน Production
