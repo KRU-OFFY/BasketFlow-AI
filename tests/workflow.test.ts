@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { actionFailure, actionSuccess } from '../lib/actions/state.ts';
-import { projectStatusLabel } from '../lib/workflow/status.ts';
+import { approvalStatusLabel, projectStatusLabel, queueStatusLabel } from '../lib/workflow/status.ts';
 import { MockProductSourceProvider } from '../lib/products/providers/mock.ts';
 
 test('translates every safety-relevant project status to Thai',()=>{
@@ -9,6 +9,8 @@ test('translates every safety-relevant project status to Thai',()=>{
   assert.equal(projectStatusLabel('blocked'),'ถูกบล็อก');
   assert.equal(projectStatusLabel('approved'),'อนุมัติแล้ว');
   assert.equal(projectStatusLabel('rejected'),'ถูกปฏิเสธ');
+  assert.equal(queueStatusLabel('ready'),'พร้อมเผยแพร่');
+  assert.equal(approvalStatusLabel('approved'),'อนุมัติแล้ว');
 });
 
 test('action state preserves request id and safe user message',()=>{

@@ -91,7 +91,7 @@ test('Supabase blocks browser safety writes and enforces version-bound queue sna
   const scriptRequest=await claim(admin,owner.id,projectId,'generate_script');
   const script=await admin.rpc('record_script',{
     p_request_id:scriptRequest.id,p_user_id:owner.id,p_project_id:projectId,p_payload:{
-      duration_seconds:30,hook:'รีวิวก่อนซื้อ',problem:'ต้องการข้อมูล',product_intro:'แก้วเก็บอุณหภูมิ',
+      duration_seconds:30,hook:'รีวิวก่อนซื้อ',hook_candidates:['รีวิวก่อนซื้อ','ข้อควรรู้ก่อนซื้อ'],selected_hook:'รีวิวก่อนซื้อ',problem:'ต้องการข้อมูล',product_intro:'แก้วเก็บอุณหภูมิ',
       benefits:['ใช้งานสะดวก'],use_case:'ใช้ทุกวัน',cta:'ดูรายละเอียดก่อนตัดสินใจ',
       affiliate_disclosure:'คลิปนี้มีลิงก์ Affiliate',full_script:'รีวิวตามข้อมูลจริง คลิปนี้มีลิงก์ Affiliate',
       subtitle_lines:['รีวิวตามข้อมูลจริง'],prompt_version:'integration-v1',ai_provider:'mock',ai_model:'mock-v1',
@@ -99,6 +99,10 @@ test('Supabase blocks browser safety writes and enforces version-bound queue sna
   });
   assert.equal(script.error,null,script.error?.message);
   const scriptId=script.data as string;
+  const storedScript=await admin.from('scripts').select('hook_candidates,selected_hook').eq('id',scriptId).single();
+  assert.equal(storedScript.error,null,storedScript.error?.message);
+  assert.deepEqual(storedScript.data?.hook_candidates,['รีวิวก่อนซื้อ','ข้อควรรู้ก่อนซื้อ']);
+  assert.equal(storedScript.data?.selected_hook,'รีวิวก่อนซื้อ');
 
   const preliminaryRequest=await claim(admin,owner.id,projectId,'run_preliminary_compliance');
   const preliminary=await admin.rpc('record_compliance_check',{
@@ -112,6 +116,14 @@ test('Supabase blocks browser safety writes and enforces version-bound queue sna
   assert.ok(prematureApproval.error,'Preliminary PASS ต้องอนุมัติโปรเจกต์ไม่ได้');
   await admin.from('workflow_action_requests').update({status:'failed'}).eq('id',prematureApprovalRequest.id);
 
+  const mediaBeforeLabelRequest=await claim(admin,owner.id,projectId,'create_media');
+  const mediaBeforeLabel=await admin.rpc('record_media_asset',{
+    p_request_id:mediaBeforeLabelRequest.id,p_user_id:owner.id,p_project_id:projectId,p_type:'voiceover',
+  });
+  assert.equal(mediaBeforeLabel.error,null,mediaBeforeLabel.error?.message);
+  const projectBeforeLabel=await admin.from('review_projects').select('media_revision').eq('id',projectId).single();
+  assert.equal(projectBeforeLabel.error,null,projectBeforeLabel.error?.message);
+
   const labelRequest=await claim(admin,owner.id,projectId,'update_ai_label');
   const label=await admin.rpc('set_project_ai_label',{
     p_request_id:labelRequest.id,p_user_id:owner.id,p_project_id:projectId,p_enabled:true,
@@ -120,6 +132,9 @@ test('Supabase blocks browser safety writes and enforces version-bound queue sna
   const projectAfterLabel=await admin.from('review_projects').select('media_revision').eq('id',projectId).single();
   assert.equal(projectAfterLabel.error,null,projectAfterLabel.error?.message);
   const mediaRevision=projectAfterLabel.data!.media_revision;
+  assert.equal(mediaRevision,projectBeforeLabel.data!.media_revision,'AI label ต้องไม่ทำให้ Media ที่เพิ่งสร้างกลายเป็น revision เก่า');
+  const currentMedia=await admin.from('media_assets').select('id').eq('id',mediaBeforeLabel.data).eq('media_revision',mediaRevision).single();
+  assert.equal(currentMedia.error,null,currentMedia.error?.message);
 
   const finalRequest=await claim(admin,owner.id,projectId,'run_final_compliance');
   const finalCheck=await admin.rpc('record_compliance_check',{

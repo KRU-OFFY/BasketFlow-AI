@@ -5,12 +5,13 @@ import { createProductAction, type ProductActionState } from '@/actions/products
 const initialState:ProductActionState = {};
 const fields = [
   ['title','ชื่อสินค้า*','text'],['category','หมวดหมู่','text'],['affiliate_link','Shopee Affiliate link*','url'],
-  ['product_url','ลิงก์หน้าสินค้า Shopee','url'],['image_url','Product image URL','url'],['price','ราคา','number'],['commission_rate','Commission rate','number'],
+  ['product_url','ลิงก์หน้าสินค้า Shopee','url'],['image_url','ลิงก์รูปสินค้า','url'],['price','ราคา','number'],['commission_rate','อัตราค่าคอมมิชชัน','number'],
 ] as const;
 
 export function ProductImportForm({initialFields={}}:{initialFields?:Record<string,string>}) {
   const [state, action, pending] = useActionState(createProductAction, initialState);
   return <form action={action} className="space-y-4">
+    <input name="source" type="hidden" value={state.fields?.source??initialFields.source??'manual'}/>
     {state.error ? <p className="rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700" role="alert">{state.error}</p> : null}
     {fields.map(([name,label,type]) => <label className="block" key={name}>
       <span className="label">{label}</span>

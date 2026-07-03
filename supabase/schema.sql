@@ -798,7 +798,7 @@ begin
   if v_current is distinct from p_enabled then
     update public.review_projects set has_ai_content_label=p_enabled,
       status=case when p_enabled then 'media_generated' else 'warning' end,
-      compliance_status=null, approval_status='pending', media_revision=media_revision+1
+      compliance_status=null, approval_status='pending'
       where id=p_project_id and user_id=p_user_id;
     update public.compliance_checks set superseded_at=now()
       where project_id=p_project_id and user_id=p_user_id and phase='final' and superseded_at is null;

@@ -2,10 +2,7 @@
 
 import { requireUser } from '@/lib/supabase/server';
 import { getProductSourceProvider, type ProductProviderName } from '@/lib/products/providers';
-import type { ProductCandidate } from '@/lib/products/providers/types';
-
-export type ProductDiscoveryState={ok:boolean;message:string;candidates:ProductCandidate[]};
-export const INITIAL_PRODUCT_DISCOVERY_STATE:ProductDiscoveryState={ok:false,message:'',candidates:[]};
+import type { ProductDiscoveryState } from '@/lib/products/discovery-state';
 
 export async function searchProductCandidatesAction(_state:ProductDiscoveryState,formData:FormData):Promise<ProductDiscoveryState>{
   await requireUser();

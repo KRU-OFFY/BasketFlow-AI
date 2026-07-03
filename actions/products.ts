@@ -7,9 +7,10 @@ import { createAdminSupabase } from '@/lib/supabase/admin';
 export type ProductActionState = { error?:string; fields?:Record<string,string> };
 
 export async function createProduct(formData: FormData): Promise<ProductActionState> {
-  const fields = Object.fromEntries(['title','category','affiliate_link','product_url','image_url','price','commission_rate'].map((key) => [key, String(formData.get(key) ?? '').trim()]));
+  const fields = Object.fromEntries(['title','category','affiliate_link','product_url','image_url','price','commission_rate','source'].map((key) => [key, String(formData.get(key) ?? '').trim()]));
   if (!fields.title) return { error:'กรุณากรอกชื่อสินค้า', fields };
   if (!looksLikeShopeeLink(fields.affiliate_link)) return { error:'ลิงก์ Affiliate ต้องเป็น URL ของ Shopee ที่รองรับเท่านั้น', fields };
+  if (fields.product_url && !looksLikeShopeeLink(fields.product_url)) return { error:'ลิงก์หน้าสินค้าต้องเป็น URL ของ Shopee ที่รองรับเท่านั้น', fields };
   const price = fields.price ? Number(fields.price) : null;
   const commissionRate = fields.commission_rate ? Number(fields.commission_rate) : null;
   if (price !== null && (!Number.isFinite(price) || price < 0)) return { error:'ราคาต้องเป็นตัวเลขตั้งแต่ 0 ขึ้นไป', fields };
@@ -23,7 +24,7 @@ export async function createProduct(formData: FormData): Promise<ProductActionSt
     category:fields.category || null,
     affiliate_link:fields.affiliate_link,
     product_url:fields.product_url || null,
-    source:'manual',
+    source:fields.source==='mock'?'mock':'manual',
     affiliate_validation_status:'validated',
     image_url:fields.image_url || null,
     price,

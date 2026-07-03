@@ -12,7 +12,7 @@ export default async function LoginPage({searchParams}:{searchParams:Promise<{er
           <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-orange/30 blur-3xl" />
           <div className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-purple/40 blur-3xl" />
           <div className="relative z-10">
-            <BasketPilotLogo inverted showTagline />
+            <BasketPilotLogo idPrefix="login-panel" inverted showTagline />
             <div className="mt-16 max-w-md">
               <p className="text-sm font-black uppercase tracking-[0.28em] text-mango">AI Affiliate Content Factory</p>
               <h1 className="mt-4 text-5xl font-black leading-tight">
@@ -32,7 +32,7 @@ export default async function LoginPage({searchParams}:{searchParams:Promise<{er
 
         <section className="p-6 md:p-10">
           <div className="mb-8 md:hidden">
-            <BasketPilotLogo showTagline />
+            <BasketPilotLogo idPrefix="login-form" showTagline />
           </div>
           <Card className="border-0 shadow-none">
             <h2 className="text-2xl font-black text-navy">เข้าสู่ระบบ BasketPilot AI</h2>

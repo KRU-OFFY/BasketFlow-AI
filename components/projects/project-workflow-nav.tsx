@@ -10,7 +10,7 @@ export async function ProjectWorkflowNav({projectId,current}:{projectId:string;c
     supabase.from('scripts').select('id').eq('project_id',projectId).eq('user_id',user.id).is('superseded_at',null).order('created_at',{ascending:false}).limit(1).maybeSingle(),
     supabase.from('compliance_checks').select('id,status').eq('project_id',projectId).eq('user_id',user.id).eq('phase','preliminary').is('superseded_at',null).order('created_at',{ascending:false}).limit(1).maybeSingle(),
     supabase.from('compliance_checks').select('id,status,script_id,media_revision').eq('project_id',projectId).eq('user_id',user.id).eq('phase','final').is('superseded_at',null).order('created_at',{ascending:false}).limit(1).maybeSingle(),
-    supabase.from('media_assets').select('id',{count:'exact',head:true}).eq('project_id',projectId).eq('user_id',user.id),
+    supabase.from('media_assets').select('id',{count:'exact',head:true}).eq('project_id',projectId).eq('user_id',user.id).eq('media_revision',project.media_revision),
     supabase.from('approvals').select('id,status,script_id,compliance_check_id,media_revision').eq('project_id',projectId).eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle(),
     supabase.from('posting_queue').select('id,status').eq('project_id',projectId).eq('user_id',user.id).in('status',['ready','scheduled']).limit(1).maybeSingle(),
   ]);
@@ -37,7 +37,7 @@ export async function ProjectWorkflowNav({projectId,current}:{projectId:string;c
     <ol className="grid gap-2 sm:grid-cols-2 xl:grid-cols-8">
       {steps.map((step,index)=>{
         const active=step.id===current;
-        const classes=`rounded-2xl border p-3 text-sm transition ${active?'border-orange bg-orange/10 text-navy':step.done?'border-emerald-200 bg-emerald-50 text-emerald-900':step.locked?'border-slate-100 bg-slate-50 text-slate-400':'border-slate-200 bg-white text-navy hover:border-purple'}`;
+        const classes=`block h-full rounded-2xl border p-3 text-sm transition ${active?'border-orange bg-orange/10 text-navy':step.done?'border-emerald-200 bg-emerald-50 text-emerald-900':step.locked?'border-slate-100 bg-slate-50 text-slate-400':'border-slate-200 bg-white text-navy hover:border-purple'}`;
         const content=<><span className="block text-xs font-bold">ขั้น {index+1}</span><span className="mt-1 block font-semibold">{step.label}</span>{step.locked?<span className="mt-1 block text-[11px] leading-4">{step.reason}</span>:null}</>;
         return <li key={step.id}>{step.locked?<div aria-disabled="true" className={classes}>{content}</div>:<Link aria-current={active?'step':undefined} className={classes} href={step.href}>{content}</Link>}</li>;
       })}
