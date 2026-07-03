@@ -503,6 +503,20 @@ create index if not exists compliance_current_phase_idx
   on public.compliance_checks(project_id, phase, created_at desc) where superseded_at is null;
 create index if not exists workflow_action_requests_user_idx
   on public.workflow_action_requests(user_id, created_at desc);
+create index if not exists approvals_compliance_check_id_idx
+  on public.approvals(compliance_check_id);
+create index if not exists approvals_script_id_idx
+  on public.approvals(script_id);
+create index if not exists compliance_checks_script_id_idx
+  on public.compliance_checks(script_id);
+create index if not exists posting_queue_approval_id_idx
+  on public.posting_queue(approval_id);
+create index if not exists posting_queue_compliance_check_id_idx
+  on public.posting_queue(compliance_check_id);
+create index if not exists posting_queue_script_id_idx
+  on public.posting_queue(script_id);
+create index if not exists workflow_action_requests_project_owner_idx
+  on public.workflow_action_requests(project_id, user_id);
 
 alter table public.workflow_action_requests enable row level security;
 drop policy if exists "owner workflow_action_requests select" on public.workflow_action_requests;
