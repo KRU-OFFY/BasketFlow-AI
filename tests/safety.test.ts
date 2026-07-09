@@ -13,6 +13,8 @@ test('blocks dangerous Thai claims', () => {
 test('accepts only exact Shopee hosts', () => {
   assert.equal(looksLikeShopeeLink('https://shopee.co.th/product/1'), true);
   assert.equal(looksLikeShopeeLink('https://shp.ee/abc'), true);
+  assert.equal(looksLikeShopeeLink('https://s.shopee.co.th/abc'), false);
+  assert.equal(looksLikeShopeeLink('https://mall.shopee.co.th/product/1'), false);
   assert.equal(looksLikeShopeeLink('https://shopee.co.th.evil.example/x'), false);
   assert.equal(looksLikeShopeeLink('https://shp.ee.evil.example/x'), false);
   assert.equal(looksLikeShopeeLink('ftp://shopee.co.th/x'), false);

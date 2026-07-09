@@ -6,6 +6,7 @@ import { generateReviewScript } from '@/lib/ai/script-generator';
 import { checkCompliance } from '@/lib/ai/compliance-checker';
 import { PROMPT_VERSIONS } from '@/lib/ai/prompt-versions';
 import { logAiEvent } from '@/lib/ai/logger';
+import { createAdminSupabase } from '@/lib/supabase/admin';
 
 const durations = [15,30,60,90] as const;
 export type ScriptDuration = typeof durations[number];
@@ -23,27 +24,31 @@ async function loadProductForProject(supabase:Awaited<ReturnType<typeof import('
 
 export async function generateBriefAction(projectId:string) {
   const started = Date.now();
+  const requestId = crypto.randomUUID();
   const { supabase, user, project } = await requireOwnedProject(projectId);
   const product = await loadProductForProject(supabase, project, user.id);
   const result = await generateProductBrief({title:product.title,category:product.category ?? undefined,risk_flags:product.risk_flags ?? []});
   const meta = aiMetadata();
 
-  const { error } = await supabase.from('ai_briefs').insert({
-    user_id:user.id,project_id:projectId,...result.output,
-    prompt_version:PROMPT_VERSIONS.productAnalyzer,ai_provider:meta.provider,ai_model:meta.model,
+  const admin = createAdminSupabase();
+  const { error } = await admin.rpc('complete_generate_brief', {
+    p_user_id:user.id,
+    p_project_id:projectId,
+    p_request_id:requestId,
+    p_output:result.output,
+    p_prompt_version:PROMPT_VERSIONS.productAnalyzer,
+    p_ai_provider:meta.provider,
+    p_ai_model:meta.model,
   });
   if (error) throw new Error(`บันทึก AI Brief ไม่สำเร็จ: ${error.message}`);
-
-  const { error:updateError } = await supabase.from('review_projects').update({status:'brief_generated',compliance_status:null,approval_status:'pending',has_affiliate_disclosure:false}).eq('id',projectId).eq('user_id',user.id);
-  if (updateError) throw new Error(`อัปเดตสถานะ Brief ไม่สำเร็จ: ${updateError.message}`);
-  await supabase.from('posting_queue').delete().eq('project_id',projectId).eq('user_id',user.id).in('status',['ready','scheduled']);
-  await logAiEvent({user_id:user.id,project_id:projectId,task_type:'generate_brief',prompt_version:PROMPT_VERSIONS.productAnalyzer,ai_provider:meta.provider,ai_model:meta.model,input_payload:{product_id:product.id,title:product.title},output_payload:result.output,error_message:result.error ?? null,latency_ms:Date.now()-started,status:result.status});
+  await logAiEvent({user_id:user.id,project_id:projectId,task_type:'generate_brief',prompt_version:PROMPT_VERSIONS.productAnalyzer,ai_provider:meta.provider,ai_model:meta.model,input_payload:{product_id:product.id,title:product.title,request_id:requestId},output_payload:result.output,error_message:result.error ?? null,latency_ms:Date.now()-started,status:result.status});
   revalidatePath(`/projects/${projectId}/brief`);
 }
 
 export async function generateScriptAction(projectId:string, duration:ScriptDuration) {
   if (!durations.includes(duration)) throw new Error('ระยะเวลาสคริปต์ไม่ถูกต้อง');
   const started = Date.now();
+  const requestId = crypto.randomUUID();
   const { supabase, user, project } = await requireOwnedProject(projectId);
   const [{ data:brief, error:briefError }, product] = await Promise.all([
     supabase.from('ai_briefs').select('*').eq('project_id',projectId).eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle(),
@@ -53,16 +58,19 @@ export async function generateScriptAction(projectId:string, duration:ScriptDura
 
   const result = await generateReviewScript({title:product.title,duration,risk_flags:product.risk_flags ?? []});
   const meta = aiMetadata();
-  const { error } = await supabase.from('scripts').insert({
-    user_id:user.id,project_id:projectId,duration_seconds:duration,...result.output,
-    prompt_version:PROMPT_VERSIONS.scriptGenerator,ai_provider:meta.provider,ai_model:meta.model,
+  const admin = createAdminSupabase();
+  const { error } = await admin.rpc('complete_generate_script', {
+    p_user_id:user.id,
+    p_project_id:projectId,
+    p_request_id:requestId,
+    p_duration_seconds:duration,
+    p_output:result.output,
+    p_prompt_version:PROMPT_VERSIONS.scriptGenerator,
+    p_ai_provider:meta.provider,
+    p_ai_model:meta.model,
   });
   if (error) throw new Error(`บันทึกสคริปต์ไม่สำเร็จ: ${error.message}`);
-
-  const { error:updateError } = await supabase.from('review_projects').update({status:'script_generated',compliance_status:null,approval_status:'pending',has_affiliate_disclosure:Boolean(result.output.affiliate_disclosure)}).eq('id',projectId).eq('user_id',user.id);
-  if (updateError) throw new Error(`อัปเดตสถานะสคริปต์ไม่สำเร็จ: ${updateError.message}`);
-  await supabase.from('posting_queue').delete().eq('project_id',projectId).eq('user_id',user.id).in('status',['ready','scheduled']);
-  await logAiEvent({user_id:user.id,project_id:projectId,task_type:'generate_script',prompt_version:PROMPT_VERSIONS.scriptGenerator,ai_provider:meta.provider,ai_model:meta.model,input_payload:{product_id:product.id,duration,brief_id:brief.id},output_payload:result.output,error_message:result.error ?? null,latency_ms:Date.now()-started,status:result.status});
+  await logAiEvent({user_id:user.id,project_id:projectId,task_type:'generate_script',prompt_version:PROMPT_VERSIONS.scriptGenerator,ai_provider:meta.provider,ai_model:meta.model,input_payload:{product_id:product.id,duration,brief_id:brief.id,request_id:requestId},output_payload:result.output,error_message:result.error ?? null,latency_ms:Date.now()-started,status:result.status});
   revalidatePath(`/projects/${projectId}/script`);
 }
 
@@ -72,6 +80,7 @@ export async function generateScriptFromForm(projectId:string, formData:FormData
 
 export async function runComplianceAction(projectId:string) {
   const started = Date.now();
+  const requestId = crypto.randomUUID();
   const { supabase, user, project } = await requireOwnedProject(projectId);
   const [{data:script,error:scriptError},{data:assets,error:assetsError},product] = await Promise.all([
     supabase.from('scripts').select('*').eq('project_id',projectId).eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle(),
@@ -83,16 +92,17 @@ export async function runComplianceAction(projectId:string) {
 
   const result = await checkCompliance({text:script.full_script ?? '',usesAiMedia:Boolean(assets?.length),hasAiContentLabel:project.has_ai_content_label,sensitiveProduct:Boolean(product.risk_flags?.length)});
   const meta = aiMetadata();
-  const { error } = await supabase.from('compliance_checks').insert({
-    user_id:user.id,project_id:projectId,...result.output,
-    prompt_version:PROMPT_VERSIONS.complianceChecker,ai_provider:meta.provider,ai_model:meta.model,
+  const admin = createAdminSupabase();
+  const { error } = await admin.rpc('complete_compliance_check', {
+    p_user_id:user.id,
+    p_project_id:projectId,
+    p_request_id:requestId,
+    p_output:result.output,
+    p_prompt_version:PROMPT_VERSIONS.complianceChecker,
+    p_ai_provider:meta.provider,
+    p_ai_model:meta.model,
   });
   if (error) throw new Error(`บันทึก Compliance ไม่สำเร็จ: ${error.message}`);
-
-  const projectStatus = result.output.status === 'PASS' ? 'compliance_checked' : result.output.status === 'WARNING' ? 'warning' : 'blocked';
-  const { error:updateError } = await supabase.from('review_projects').update({compliance_status:result.output.status,status:projectStatus,approval_status:'pending'}).eq('id',projectId).eq('user_id',user.id);
-  if (updateError) throw new Error(`อัปเดตสถานะ Compliance ไม่สำเร็จ: ${updateError.message}`);
-  await supabase.from('posting_queue').delete().eq('project_id',projectId).eq('user_id',user.id).in('status',['ready','scheduled']);
-  await logAiEvent({user_id:user.id,project_id:projectId,task_type:'compliance_check',prompt_version:PROMPT_VERSIONS.complianceChecker,ai_provider:meta.provider,ai_model:meta.model,input_payload:{script_id:script.id,uses_ai_media:Boolean(assets?.length)},output_payload:result.output,error_message:result.error ?? null,latency_ms:Date.now()-started,status:result.status});
+  await logAiEvent({user_id:user.id,project_id:projectId,task_type:'compliance_check',prompt_version:PROMPT_VERSIONS.complianceChecker,ai_provider:meta.provider,ai_model:meta.model,input_payload:{script_id:script.id,uses_ai_media:Boolean(assets?.length),request_id:requestId},output_payload:result.output,error_message:result.error ?? null,latency_ms:Date.now()-started,status:result.status});
   revalidatePath(`/projects/${projectId}/compliance`);
 }
