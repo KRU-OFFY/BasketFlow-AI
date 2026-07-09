@@ -1,37 +1,38 @@
+import { generateScriptFromForm } from '@/actions/ai';
 import { AppShell } from '@/components/layout/app-shell';
 import { Badge, Card } from '@/components/ui/card';
-import { mockScript } from '@/lib/ai/script-generator';
-import { mockProduct } from '@/lib/mock-data';
+import { getOwnedProjectPage } from '@/lib/supabase/page';
 
-export default function Script() {
-  const script = mockScript({ title: mockProduct.title, duration: 30 });
+function list(value:unknown):string[]{return Array.isArray(value)?value.map(String):[];}
 
-  return (
-    <AppShell>
-      <h1 className="text-3xl font-bold">Script Studio</h1>
-      <div className="mt-6 grid gap-4 lg:grid-cols-[.7fr_1.3fr]">
-        <Card>
-          <label className="label" htmlFor="duration">Duration</label>
-          <select className="input mt-1" id="duration" defaultValue="30">
-            <option value="15">15 seconds</option>
-            <option value="30">30 seconds</option>
-            <option value="60">60 seconds</option>
-            <option value="90">90 seconds</option>
-          </select>
-          <div className="mt-4 space-y-2 text-sm">
-            <Badge tone="green">Affiliate Disclosure Included</Badge>
-            <p className="text-slate-500">สคริปต์ mock จะใส่ disclosure ภาษาไทยโดยอัตโนมัติ</p>
-          </div>
-        </Card>
-        <Card>
-          <h2 className="font-bold">Full Script</h2>
-          <p className="mt-3 whitespace-pre-wrap leading-7 text-slate-700">{script.full_script}</p>
-          <h3 className="mt-5 font-bold">Subtitle Lines</h3>
-          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-600">
-            {script.subtitle_lines.map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}
-          </ol>
-        </Card>
-      </div>
-    </AppShell>
-  );
+export default async function Script({params}:{params:Promise<{id:string}>}) {
+  const {id}=await params;
+  const {supabase,user}=await getOwnedProjectPage(id);
+  const [{data:brief,error:briefError},{data:script,error:scriptError}]=await Promise.all([
+    supabase.from('ai_briefs').select('id').eq('project_id',id).eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle(),
+    supabase.from('scripts').select('*').eq('project_id',id).eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle(),
+  ]);
+  if(briefError) throw new Error(`โหลด AI Brief ไม่สำเร็จ: ${briefError.message}`);
+  if(scriptError) throw new Error(`โหลดสคริปต์ไม่สำเร็จ: ${scriptError.message}`);
+  const action=generateScriptFromForm.bind(null,id);
+
+  return <AppShell><h1 className="text-3xl font-bold">Script Studio</h1><div className="mt-6 grid gap-4 lg:grid-cols-[.7fr_1.3fr]">
+    <Card>
+      <form action={action}>
+        <label className="label" htmlFor="duration">Duration</label>
+        <select className="input mt-1" defaultValue="30" id="duration" name="duration">{[15,30,60,90].map(x=><option key={x} value={x}>{x} seconds</option>)}</select>
+        <button className="btn mt-4" disabled={!brief}>{script?'สร้างสคริปต์ใหม่':'Generate Script'}</button>
+      </form>
+      {!brief?<p className="mt-3 text-sm text-orange-700">กรุณาสร้าง AI Brief ก่อน</p>:null}
+    </Card>
+    <Card>{!script?<p className="text-center font-bold">ยังไม่มีสคริปต์</p>:<>
+      <div className="flex gap-2"><Badge tone="green">Affiliate Disclosure Included</Badge><Badge tone="purple">{script.duration_seconds}s</Badge></div>
+      <h2 className="mt-4 font-bold">Hook</h2>
+      <p>{script.hook}</p>
+      <h2 className="mt-4 font-bold">Full Script</h2>
+      <p className="mt-2 whitespace-pre-wrap leading-7">{script.full_script}</p>
+      <h3 className="mt-5 font-bold">Subtitle Lines</h3>
+      <ol className="mt-3 list-decimal pl-5">{list(script.subtitle_lines).map((line,index)=><li key={`${line}-${index}`}>{line}</li>)}</ol>
+    </>}</Card>
+  </div></AppShell>;
 }
