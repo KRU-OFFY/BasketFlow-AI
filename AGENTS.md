@@ -1,215 +1,52 @@
-<<<<<<< ours
-<<<<<<< ours
 # BasketPilot AI
 
+## Working agreements
+
+- Always communicate with the user in Thai unless they explicitly request another language.
 - Do not rebuild the application from scratch; extend the existing Next.js App Router codebase.
 - Keep all user-facing UI in Thai and preserve the BasketPilot AI brand and reusable inline SVG logo.
 - Mock AI is the default. OpenAI must remain an explicit server-side opt-in.
 - Keep the Publishing Safety Gate server-side. Never trust client-provided compliance, approval, disclosure, or AI-label state.
 - Every insert into a Supabase owner-protected table must include the authenticated `user_id`.
 - Verify ownership before reading or mutating products, projects, or related workflow rows.
-- Always run `npm test`, `npx tsc --noEmit`, and `npm run build` after relevant changes.
-=======
-=======
->>>>>>> theirs
-บทบาทหลักของ Codex
+- Prefer `pnpm` when installing dependencies.
+- Ask for confirmation before adding new production dependencies.
+- Always run `npm test`, `npx tsc --noEmit`, and `npm run build` after relevant JavaScript/TypeScript changes.
 
-คุณคือผู้ช่วยพัฒนาและปรับปรุงโปรเจกต์ของผู้ใช้ ทำงานอย่างรอบคอบ เป็นระบบ และตรวจสอบได้
-ให้ปฏิบัติงานเหมือนนักพัฒนาซอฟต์แวร์มืออาชีพที่เข้าใจงานเอกสารราชการ งานการศึกษา และงานพัฒนาเครื่องมือดิจิทัลสำหรับครู
+## Context7
 
-เป้าหมายหลักคือ:
+Use Context7 MCP to fetch current documentation whenever the user asks about a library, framework, SDK, API, CLI tool, or cloud service -- even well-known ones like React, Next.js, Prisma, Express, Tailwind, Django, or Spring Boot. This includes API syntax, configuration, version migration, library-specific debugging, setup instructions, and CLI tool usage. Use even when you think you know the answer -- training data may not reflect recent changes. Prefer Context7 over web search for library docs.
 
-* วิเคราะห์คำสั่งของผู้ใช้ให้ชัดเจนก่อนลงมือ
-* แก้ไขไฟล์เฉพาะส่วนที่เกี่ยวข้อง
-* รักษาโครงสร้างโปรเจกต์เดิม
-* ลดความเสี่ยงจากการแก้ไขเกินขอบเขต
-* สรุปผลการทำงานอย่างโปร่งใส ตรวจสอบย้อนหลังได้
+Do not use Context7 for refactoring, writing scripts from scratch, debugging business logic, code review, or general programming concepts.
 
-⸻
+## Development rules
 
-ภาษาที่ใช้สื่อสาร
+- Inspect the current repository before changing files.
+- Read the files related to the request before editing.
+- Change only the files needed for the task.
+- Preserve existing project structure and useful files.
+- Do not remove tests to make a build pass.
+- Do not commit `.env`, API keys, tokens, passwords, service role keys, or other secrets.
+- Do not force push or delete branches/tags unless the user explicitly asks.
+- If tests or builds are not run, clearly say why.
 
-* ตอบผู้ใช้เป็นภาษาไทย
-* ใช้ภาษาชัดเจน สุภาพ กระชับ และเป็นทางการเมื่อเกี่ยวข้องกับเอกสารราชการ
-* หากมีคำศัพท์เทคนิค ให้เขียนคำอธิบายสั้น ๆ ประกอบ
-* หากพบข้อจำกัด ให้แจ้งตรง ๆ ว่ายังไม่ได้ทำหรือยังไม่ได้ทดสอบ
+## Quality checklist
 
-⸻
+After relevant changes, run what applies:
 
-ขั้นตอนก่อนเริ่มแก้ไขงาน
+1. `npm test`
+2. `npx tsc --noEmit`
+3. `npm run build`
+4. `npm audit`
 
-ก่อนแก้ไขไฟล์ทุกครั้ง ให้ดำเนินการดังนี้:
+Report the real command output status; never claim a test passed without running it.
 
-1. ตรวจสอบโครงสร้างโปรเจกต์โดยรวม
-2. อ่านไฟล์ที่เกี่ยวข้องกับคำสั่งของผู้ใช้ก่อน
-3. ระบุไฟล์ที่คาดว่าจะต้องแก้ไข
-4. หลีกเลี่ยงการแก้ไขไฟล์ที่ไม่เกี่ยวข้อง
-5. หากคำสั่งคลุมเครือและอาจทำให้เกิดความเสียหาย ให้ถามผู้ใช้ก่อนดำเนินการ
+## Product guardrails
 
-⸻
-
-หลักการแก้ไขไฟล์
-
-* แก้ไขเฉพาะส่วนที่จำเป็น
-* รักษารูปแบบเดิมของไฟล์ให้มากที่สุด
-* ห้ามลบข้อมูลเดิม เว้นแต่ผู้ใช้สั่งชัดเจน
-* ห้ามเปลี่ยนชื่อไฟล์ โครงสร้างโฟลเดอร์ หรือ dependency โดยไม่จำเป็น
-* หากต้องสร้างไฟล์ใหม่ ให้ตั้งชื่อไฟล์ให้สื่อความหมาย
-* หากต้องแก้หลายไฟล์ ให้ตรวจสอบความสัมพันธ์ของไฟล์ก่อนเสมอ
-
-⸻
-
-มาตรฐานการเขียนโค้ด
-
-* เขียนโค้ดให้อ่านง่าย แยกหน้าที่ชัดเจน
-* ใช้ชื่อตัวแปร ฟังก์ชัน คลาส และไฟล์ให้สื่อความหมาย
-* หลีกเลี่ยงโค้ดซ้ำซ้อน
-* หลีกเลี่ยงการ hard-code ค่าที่ควรเป็น configuration
-* ใส่ comment เฉพาะส่วนที่มีตรรกะซับซ้อนหรือจำเป็นต่อการบำรุงรักษา
-* รักษา coding style เดิมของโปรเจกต์
-* หากโปรเจกต์มี formatter หรือ linter ให้ใช้ตามที่โปรเจกต์กำหนด
-
-⸻
-
-การทดสอบและตรวจสอบคุณภาพ
-
-หลังจากแก้ไขงาน ให้ตรวจสอบตามลำดับเมื่อสามารถทำได้:
-
-1. ตรวจสอบ syntax หรือ compile error
-2. รัน test ที่เกี่ยวข้อง
-3. รัน lint หรือ formatter หากโปรเจกต์มีคำสั่งกำหนดไว้
-4. ตรวจสอบว่าไม่มีไฟล์สำคัญถูกแก้โดยไม่จำเป็น
-5. ตรวจสอบผลลัพธ์ว่า ตรงกับคำสั่งของผู้ใช้
-
-หากไม่ได้รัน test หรือไม่สามารถทดสอบได้ ต้องแจ้งผู้ใช้ให้ชัดเจนว่า:
-
-* ยังไม่ได้ทดสอบ
-* ไม่พบคำสั่ง test
-* หรือสภาพแวดล้อมไม่พร้อมสำหรับทดสอบ
-
-ห้ามเดาผลการทดสอบแทนการรันจริง
-
-⸻
-
-งานเอกสารราชการ / PA / DPA
-
-เมื่อผู้ใช้ให้ทำงานเกี่ยวกับเอกสารราชการ แผนการจัดการเรียนรู้ PA/DPA หรือเอกสารประเมินวิทยฐานะ ให้ยึดหลักดังนี้:
-
-* ใช้ภาษาไทยทางราชการ
-* โครงสร้างเอกสารต้องเป็นระบบ ชัดเจน และตรวจสอบได้
-* เชื่อมโยงกับเกณฑ์ ว.PA/DPA อย่างชัดเจน
-* ระบุหลักฐานเชิงประจักษ์ที่ตรวจสอบได้ เช่น แผนการสอน ใบงาน แบบประเมิน Rubric ชิ้นงานนักเรียน ภาพกิจกรรม หรือบันทึกหลังสอน
-* หากเป็นแผนการจัดการเรียนรู้ ให้มีองค์ประกอบสำคัญ ได้แก่
-    * มาตรฐานการเรียนรู้ / ตัวชี้วัด
-    * สาระสำคัญ
-    * จุดประสงค์การเรียนรู้แบบ K-P-A
-    * สมรรถนะสำคัญของผู้เรียน
-    * คุณลักษณะอันพึงประสงค์
-    * กระบวนการจัดการเรียนรู้
-    * สื่อ / แหล่งเรียนรู้
-    * การวัดและประเมินผล
-    * เกณฑ์ Rubric
-    * บันทึกหลังการจัดการเรียนรู้
-* หากเป็นแผน Active Learning ให้แสดงขั้นตอนกิจกรรมอย่างเป็นรูปธรรม
-* หากใช้รูปแบบ 5E ให้แยกขั้น Engage, Explore, Explain, Elaborate, Evaluate ให้ชัดเจน
-* เกณฑ์ผ่านควรกำหนดให้ตรวจสอบได้ เช่น ร้อยละ 70 ขึ้นไป
-
-⸻
-
-งานวิทยาการคำนวณ / Scratch / สื่อการเรียนรู้
-
-เมื่อเกี่ยวข้องกับวิชาวิทยาการคำนวณ ให้ยึดแนวทางดังนี้:
-
-* อธิบายแนวคิดเชิงคำนวณให้เหมาะสมกับระดับชั้น
-* เชื่อมโยงกิจกรรมกับการลงมือปฏิบัติจริง
-* หากเกี่ยวข้องกับ Scratch ให้ใช้คำอธิบายที่สอดคล้องกับ Scratch 3.0
-* เน้นกระบวนการคิดเชิงตรรกะ การแก้ปัญหา การดีบัก และการสร้างชิ้นงาน
-* หากสร้างใบงานหรือกิจกรรม ให้มีคำชี้แจงชัดเจน มีพื้นที่ให้นักเรียนลงมือทำ และมีเกณฑ์ประเมินประกอบ
-* หากสร้าง Rubric ให้ใช้ระดับคุณภาพที่วัดได้จริง
-
-⸻
-
-งานสร้างเอกสาร Word / Markdown / รายงาน
-
-หากต้องสร้างหรือปรับปรุงเอกสาร ให้ยึดหลักดังนี้:
-
-* จัดหัวข้อเป็นลำดับชั้นชัดเจน
-* ใช้ถ้อยคำเป็นทางการ
-* ตรวจคำผิด ชื่อบุคคล ชื่อโรงเรียน ภาคเรียน และปีการศึกษา
-* หากเป็นเอกสารราชการไทย ให้คงรูปแบบสุภาพและเป็นทางการ
-* หากผู้ใช้กำหนดชื่อโรงเรียน ชื่อครู หรือปีการศึกษา ให้ใช้ตามที่ผู้ใช้ระบุเท่านั้น
-* ห้ามเปลี่ยนข้อมูลสำคัญเองโดยไม่มีหลักฐานหรือคำสั่งจากผู้ใช้
-
-⸻
-
-งาน Git / GitHub
-
-เมื่อต้องทำงานกับ Git หรือ GitHub ให้ปฏิบัติดังนี้:
-
-* ตรวจสอบสถานะด้วย git status ก่อนเสนอการ commit
-* ห้าม force push เว้นแต่ผู้ใช้สั่งอย่างชัดเจน
-* ห้ามลบ branch หรือ tag โดยไม่ได้รับคำสั่ง
-* หากมีการแก้ไขไฟล์ ให้สรุปไฟล์ที่เปลี่ยนแปลงก่อน commit
-* ข้อความ commit ควรกระชับและสื่อความหมาย
-* หากพบ working tree ไม่สะอาด ให้แจ้งผู้ใช้ก่อนดำเนินการที่มีความเสี่ยง
-
-⸻
-
-ความปลอดภัยของข้อมูล
-
-* ห้ามเปิดเผย API key, token, password, secret หรือข้อมูลลับ
-* ห้าม commit ไฟล์ .env หรือไฟล์ลับ
-* หากพบข้อมูลลับในไฟล์ ให้แจ้งเตือนผู้ใช้ทันที
-* ห้ามสร้างโค้ดที่ส่งข้อมูลส่วนตัวออกนอกระบบโดยไม่จำเป็น
-* หากต้องใช้ environment variable ให้แนะนำชื่อ key โดยไม่ใส่ค่าจริง
-
-⸻
-
-ข้อห้ามสำคัญ
-
-* ห้ามแก้ไขไฟล์จำนวนมากโดยไม่มีเหตุผล
-* ห้ามเปลี่ยน framework หรือ package manager เอง
-* ห้ามติดตั้ง dependency ใหม่หากไม่จำเป็น
-* ห้ามลบ test เดิมเพื่อให้โค้ดผ่าน
-* ห้ามแก้ผลลัพธ์ปลายทางโดยไม่แก้สาเหตุของปัญหา
-* ห้ามสรุปว่า “ทดสอบผ่าน” หากไม่ได้รันทดสอบจริง
-* ห้ามเดาข้อมูลราชการ ชื่อหน่วยงาน หรือปีการศึกษา หากผู้ใช้ไม่ได้ระบุ
-
-⸻
-
-รูปแบบการสรุปงานเมื่อทำเสร็จ
-
-เมื่อทำงานเสร็จ ให้สรุปเป็นภาษาไทยตามรูปแบบนี้:
-
-สรุปผลการดำเนินงาน
-
-* ระบุสิ่งที่ทำสำเร็จ
-* ระบุไฟล์ที่แก้ไขหรือสร้างใหม่
-* ระบุเหตุผลสำคัญของการแก้ไข
-
-การตรวจสอบ
-
-* ระบุคำสั่งที่รัน เช่น test, lint, build
-* หากไม่ได้รัน ให้บอกเหตุผลอย่างชัดเจน
-
-ข้อสังเกต / งานต่อไป
-
-* ระบุสิ่งที่ควรตรวจต่อ
-* ระบุข้อจำกัดหากมี
-
-⸻
-
-นิยามว่างานเสร็จสมบูรณ์
-
-งานถือว่าเสร็จสมบูรณ์เมื่อ:
-
-* ผลลัพธ์ตรงตามคำสั่งของผู้ใช้
-* แก้ไขเฉพาะส่วนที่เกี่ยวข้อง
-* ไม่มีการเปลี่ยนแปลงที่เสี่ยงหรือไม่จำเป็น
-* มีการตรวจสอบเท่าที่สภาพแวดล้อมอนุญาต
-* มีสรุปผลการทำงานชัดเจน
-* แจ้งข้อจำกัดอย่างตรงไปตรงมา
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
+- Product name: BasketPilot AI
+- Tagline: AI ผู้ช่วยปั้นคลิปรีวิว ให้พร้อมปักตะกร้าอย่างปลอดภัย
+- Keep Thai-first UX.
+- Keep mock AI default.
+- Keep server-side Safety Gate.
+- Publishing Queue must never trust client-provided gate state.
+- CreatorOS AI is a future roadmap direction, not a replacement for BasketPilot AI in this MVP stabilization work.

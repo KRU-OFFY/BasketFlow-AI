@@ -1,3 +1,36 @@
 'use server';
-import { redirect } from 'next/navigation'; import { createServerSupabase, getUser } from '@/lib/supabase/server'; import { detectProductRisk, looksLikeShopeeLink } from '@/lib/validators/product';
-export async function createProduct(formData: FormData) { const title=String(formData.get('title')||''); const affiliate_link=String(formData.get('affiliate_link')||''); if(!title || !affiliate_link || !looksLikeShopeeLink(affiliate_link)) throw new Error('ข้อมูลสินค้าไม่ถูกต้อง'); const category=String(formData.get('category')||''); const user=await getUser(); const supabase=await createServerSupabase(); const { data } = await supabase.from('products').insert({ user_id:user?.id, title, category, affiliate_link, image_url:formData.get('image_url')||null, price:Number(formData.get('price')||0), commission_rate:Number(formData.get('commission_rate')||0), risk_flags:detectProductRisk(title,category)}).select('id').single(); redirect(`/products/${data?.id ?? ''}`); }
+import { redirect } from 'next/navigation';
+import { detectProductRisk, looksLikeShopeeLink } from '@/lib/validators/product';
+import { requireUser } from '@/lib/supabase/server';
+
+export type ProductActionState = { error?:string; fields?:Record<string,string> };
+
+export async function createProduct(formData: FormData): Promise<ProductActionState> {
+  const fields = Object.fromEntries(['title','category','affiliate_link','image_url','price','commission_rate'].map((key) => [key, String(formData.get(key) ?? '').trim()]));
+  if (!fields.title) return { error:'กรุณากรอกชื่อสินค้า', fields };
+  if (!looksLikeShopeeLink(fields.affiliate_link)) return { error:'ลิงก์ Affiliate ต้องเป็น URL ของ Shopee ที่รองรับเท่านั้น', fields };
+
+  const price = fields.price ? Number(fields.price) : null;
+  const commissionRate = fields.commission_rate ? Number(fields.commission_rate) : null;
+  if (price !== null && (!Number.isFinite(price) || price < 0)) return { error:'ราคาต้องเป็นตัวเลขตั้งแต่ 0 ขึ้นไป', fields };
+  if (commissionRate !== null && (!Number.isFinite(commissionRate) || commissionRate < 0 || commissionRate > 100)) return { error:'Commission rate ต้องอยู่ระหว่าง 0–100', fields };
+
+  const { supabase, user } = await requireUser();
+  const { data, error } = await supabase.from('products').insert({
+    user_id:user.id,
+    title:fields.title,
+    category:fields.category || null,
+    affiliate_link:fields.affiliate_link,
+    image_url:fields.image_url || null,
+    price,
+    commission_rate:commissionRate,
+    risk_flags:detectProductRisk(fields.title, fields.category),
+  }).select('id').single();
+
+  if (error || !data?.id) return { error:`บันทึกสินค้าไม่สำเร็จ: ${error?.message ?? 'ไม่พบรหัสสินค้า'}`, fields };
+  redirect(`/products/${data.id}`);
+}
+
+export async function createProductAction(_:ProductActionState, formData:FormData) {
+  return createProduct(formData);
+}

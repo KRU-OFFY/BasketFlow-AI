@@ -1,2 +1,16 @@
-import { AppShell } from '@/components/layout/app-shell'; import { Card } from '@/components/ui/card'; import { getUser } from '@/lib/supabase/server';
-export default async function Settings(){const u=await getUser();return <AppShell><h1 className="text-3xl font-bold">Settings</h1><Card className="mt-6"><p>User id: {u?.id ?? 'mock-local'}</p><p>Email: {u?.email ?? 'not configured'}</p><p>Full name: {String(u?.user_metadata?.full_name ?? '-')}</p><p>Role: creator</p><h2 className="mt-6 font-bold">AI settings</h2><p>Mock mode by default. Set AI_PROVIDER=openai and OPENAI_API_KEY to enable OpenAI.</p><h2 className="mt-6 font-bold text-orange-700">Compliance policy reminder</h2><p>ห้ามกล่าวอ้างผลลัพธ์เกินจริงและต้องเปิดเผย Affiliate/AI content label</p></Card></AppShell>}
+import { AppShell } from '@/components/layout/app-shell';
+import { Card } from '@/components/ui/card';
+import { getPageContext } from '@/lib/supabase/page';
+
+export default async function Settings(){
+  const {user}=await getPageContext();
+  return <AppShell><h1 className="text-3xl font-bold">ตั้งค่า</h1><Card className="mt-6">
+    <p><b>User ID:</b> {user.id}</p>
+    <p><b>Email:</b> {user.email}</p>
+    <p><b>ชื่อ:</b> {String(user.user_metadata?.full_name??'-')}</p>
+    <h2 className="mt-6 font-bold">AI Settings</h2>
+    <p>ระบบใช้ Mock AI เป็นค่าเริ่มต้น และจะใช้ OpenAI เมื่อกำหนด AI_PROVIDER/OpenAI key ฝั่งเซิร์ฟเวอร์เท่านั้น</p>
+    <h2 className="mt-6 font-bold text-orange-700">Compliance Reminder</h2>
+    <p>ห้ามกล่าวอ้างผลลัพธ์เกินจริง และต้องมี Affiliate disclosure กับ AI Content Label ก่อนเผยแพร่</p>
+  </Card></AppShell>;
+}
