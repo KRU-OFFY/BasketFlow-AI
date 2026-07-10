@@ -20,7 +20,7 @@ npx supabase status -o env
 นำค่า `API_URL` และ publishable/anon key จาก `supabase status` ใส่ `.env.local`:
 
 ```dotenv
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:55421
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<local publishable or anon key>
 SUPABASE_SERVICE_ROLE_KEY=<local service role key; server-only>
 AI_PROVIDER=mock
