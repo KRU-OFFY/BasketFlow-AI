@@ -2,14 +2,14 @@ project_id = "basketpilot-ai"
 
 [api]
 enabled = true
-port = 54321
+port = 55421
 schemas = ["public", "graphql_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
 [db]
-port = 54322
-shadow_port = 54320
+port = 55422
+shadow_port = 55420
 major_version = 17
 
 [db.migrations]
@@ -22,12 +22,12 @@ sql_paths = []
 
 [studio]
 enabled = true
-port = 54323
+port = 55423
 api_url = "http://127.0.0.1"
 
 [local_smtp]
 enabled = true
-port = 54324
+port = 55424
 
 [storage]
 enabled = true
@@ -58,5 +58,5 @@ enabled = true
 
 [analytics]
 enabled = true
-port = 54327
+port = 55427
 backend = "postgres"
