@@ -1,3 +1,5 @@
+import { resolveSupabasePublicConfig } from '../supabase/public-config.ts';
+
 export type DeploymentHealthStatus = 'ok' | 'degraded';
 
 export type DeploymentHealth = {
@@ -26,9 +28,7 @@ function isAiProviderReady(env: NodeJS.ProcessEnv) {
 
 export function evaluateDeploymentHealth(env: NodeJS.ProcessEnv): DeploymentHealth {
   const checks = {
-    supabasePublic:
-      hasValue(env.NEXT_PUBLIC_SUPABASE_URL) &&
-      (hasValue(env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) || hasValue(env.NEXT_PUBLIC_SUPABASE_ANON_KEY)),
+    supabasePublic: Boolean(resolveSupabasePublicConfig(env)),
     supabaseServiceRole: hasValue(env.SUPABASE_SERVICE_ROLE_KEY),
     aiProvider: isAiProviderReady(env),
   };

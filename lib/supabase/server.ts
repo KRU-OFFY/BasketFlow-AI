@@ -2,13 +2,16 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { connection } from 'next/server';
 
+import { resolveSupabasePublicConfig } from './public-config';
+
 export function getSupabaseConfig() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) {
-    throw new Error('Supabase configuration is missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.');
+  const config = resolveSupabasePublicConfig(process.env);
+  if (!config) {
+    throw new Error(
+      'Supabase public configuration is incomplete. Set NEXT_PUBLIC_SUPABASE_URL together with NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.',
+    );
   }
-  return { url, key };
+  return { url: config.url, key: config.key };
 }
 
 export async function createServerSupabase() {
