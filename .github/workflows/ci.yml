@@ -23,3 +23,16 @@ jobs:
       - run: npm test
       - run: npm run typecheck
       - run: npm run build
+      - name: Package verified source for Vercel preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: basketflow-vercel-source
+          path: |
+            .
+            !.git/**
+            !node_modules/**
+            !.next/**
+            !typecheck.log
+          include-hidden-files: true
+          compression-level: 9
+          retention-days: 1
