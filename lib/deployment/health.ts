@@ -1,4 +1,4 @@
-import { resolveSupabasePublicConfig } from '@/lib/supabase/public-config';
+import { resolveSupabasePublicConfig } from '../supabase/public-config.ts';
 
 export type DeploymentHealthStatus = 'ok' | 'degraded';
 
