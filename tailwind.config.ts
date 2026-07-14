@@ -5,13 +5,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        navy: '#0B1026',
-        indigo: '#302B7A',
-        orange: '#FF6B4A',
-        rose: '#FF4D6D',
-        purple: '#5B2EFF',
-        mango: '#FFC857',
-        mint: '#2ED8A3',
+        navy: '#0D1B3D',
+        blue: '#2563EB',
+        cyan: '#06B6D4',
+        purple: '#8B5CF6',
+        pink: '#EC4899',
+        orange: '#F59E0B',
+        green: '#10B981',
+        mint: '#34D399',
       },
     },
   },
