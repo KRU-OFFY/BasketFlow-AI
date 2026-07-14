@@ -21,18 +21,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - name: Run typecheck
-        id: typecheck
-        continue-on-error: true
-        run: npm run typecheck -- --pretty false > typecheck.log 2>&1
-      - name: Upload typecheck diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: typecheck-diagnostics
-          path: typecheck.log
-          if-no-files-found: error
-      - name: Fail on typecheck errors
-        if: steps.typecheck.outcome == 'failure'
-        run: exit 1
+      - run: npm run typecheck
       - run: npm run build
