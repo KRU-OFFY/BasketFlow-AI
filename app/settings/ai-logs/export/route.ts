@@ -24,7 +24,7 @@ export async function GET() {
   return new Response(`\uFEFF${body}`, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="basketpilot-ai-logs.csv"',
+      'Content-Disposition': 'attachment; filename="basketflow-ai-logs.csv"',
       'Cache-Control': 'no-store',
     },
   });
