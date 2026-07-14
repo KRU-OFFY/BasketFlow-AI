@@ -1,22 +1,23 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { resolveSupabasePublicConfig } from './public-config';
+
 const protectedPrefixes = ['/dashboard', '/products', '/projects', '/posting-queue', '/analytics', '/settings'];
 
 export async function updateSession(request: NextRequest) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const config = resolveSupabasePublicConfig(process.env);
   const isProtected = protectedPrefixes.some((prefix) => request.nextUrl.pathname.startsWith(prefix));
 
-  if (!url || !key) {
+  if (!config) {
     if (!isProtected) return NextResponse.next({ request });
     const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('error', 'ระบบยังไม่ได้ตั้งค่า Supabase');
+    loginUrl.searchParams.set('error', 'การตั้งค่า Supabase ฝั่งสาธารณะไม่ครบถ้วน');
     return NextResponse.redirect(loginUrl);
   }
 
   let response = NextResponse.next({ request });
-  const supabase = createServerClient(url, key, {
+  const supabase = createServerClient(config.url, config.key, {
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll(cookiesToSet) {
