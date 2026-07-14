@@ -2,6 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { evaluateDeploymentHealth } from '../lib/deployment/health.ts';
+import {
+  DEFAULT_SUPABASE_PUBLISHABLE_KEY,
+  DEFAULT_SUPABASE_URL,
+  resolveSupabasePublicConfig,
+} from '../lib/supabase/public-config.ts';
 
 const completeEnv: NodeJS.ProcessEnv = {
   NODE_ENV: 'test',
@@ -28,7 +33,35 @@ test('deployment health is ready when every required server configuration is pre
   });
 });
 
-test('legacy Supabase anon key remains an accepted public-key fallback', () => {
+test('explicit Supabase public environment variables override the safe defaults', () => {
+  const result = resolveSupabasePublicConfig(completeEnv);
+
+  assert.deepEqual(result, {
+    url: 'https://example.supabase.co',
+    key: 'sb_publishable_example',
+    source: 'environment',
+  });
+});
+
+test('the existing BasketFlow Supabase public configuration is used when both public variables are absent', () => {
+  const env: NodeJS.ProcessEnv = {
+    NODE_ENV: 'test',
+    SUPABASE_SERVICE_ROLE_KEY: 'service-role-placeholder',
+    AI_PROVIDER: 'mock',
+  };
+
+  assert.deepEqual(resolveSupabasePublicConfig(env), {
+    url: DEFAULT_SUPABASE_URL,
+    key: DEFAULT_SUPABASE_PUBLISHABLE_KEY,
+    source: 'default',
+  });
+
+  const health = evaluateDeploymentHealth(env);
+  assert.equal(health.status, 'ok');
+  assert.equal(health.checks.supabasePublic, true);
+});
+
+test('legacy Supabase anon key remains an accepted public-key override', () => {
   const result = evaluateDeploymentHealth({
     ...completeEnv,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: undefined,
@@ -40,6 +73,21 @@ test('legacy Supabase anon key remains an accepted public-key fallback', () => {
   assert.equal(result.checks.supabasePublic, true);
 });
 
+test('partial public Supabase overrides are rejected instead of mixing projects', () => {
+  const env: NodeJS.ProcessEnv = {
+    ...completeEnv,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: undefined,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: undefined,
+  };
+
+  assert.equal(resolveSupabasePublicConfig(env), null);
+
+  const result = evaluateDeploymentHealth(env);
+  assert.equal(result.status, 'degraded');
+  assert.equal(result.httpStatus, 503);
+  assert.equal(result.checks.supabasePublic, false);
+});
+
 test('deployment health is degraded when the service role is missing', () => {
   const result = evaluateDeploymentHealth({
     ...completeEnv,
@@ -49,17 +97,6 @@ test('deployment health is degraded when the service role is missing', () => {
   assert.equal(result.status, 'degraded');
   assert.equal(result.httpStatus, 503);
   assert.equal(result.checks.supabaseServiceRole, false);
-});
-
-test('deployment health is degraded when public Supabase configuration is incomplete', () => {
-  const result = evaluateDeploymentHealth({
-    ...completeEnv,
-    NEXT_PUBLIC_SUPABASE_URL: undefined,
-  });
-
-  assert.equal(result.status, 'degraded');
-  assert.equal(result.httpStatus, 503);
-  assert.equal(result.checks.supabasePublic, false);
 });
 
 test('mock remains the safe AI provider default when AI_PROVIDER is unset', () => {
