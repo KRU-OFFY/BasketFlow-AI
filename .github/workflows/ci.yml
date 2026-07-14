@@ -1,4 +1,4 @@
-name: BasketPilot AI CI
+name: BasketFlow AI CI
 
 on:
   pull_request:
@@ -21,5 +21,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npx tsc --noEmit
+      - run: npm run typecheck
       - run: npm run build

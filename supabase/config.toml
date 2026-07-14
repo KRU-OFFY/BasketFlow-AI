@@ -1,4 +1,4 @@
-project_id = "basketpilot-ai"
+project_id = "basketflow-ai"
 
 [api]
 enabled = true

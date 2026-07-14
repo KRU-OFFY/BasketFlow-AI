@@ -9,7 +9,7 @@ if (applicationId && clientToken && !datadogRum.getInitConfiguration()) {
     applicationId,
     clientToken,
     site: 'ap1.datadoghq.com',
-    service: 'basketpilot-ai',
+    service: 'basketflow-ai',
     env: process.env.NEXT_PUBLIC_DD_ENV || 'production',
     version: process.env.NEXT_PUBLIC_DD_VERSION,
     sessionSampleRate: 100,

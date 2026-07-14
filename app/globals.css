@@ -2,18 +2,19 @@
 @config "../tailwind.config.ts";
 
 :root{
-  --basketpilot-navy:#0B1026;
-  --basketpilot-indigo:#302B7A;
-  --basketpilot-orange:#FF6B4A;
-  --basketpilot-rose:#FF4D6D;
-  --basketpilot-purple:#5B2EFF;
-  --basketpilot-mango:#FFC857;
+  --basketflow-navy:#0D1B3D;
+  --basketflow-blue:#2563EB;
+  --basketflow-cyan:#06B6D4;
+  --basketflow-purple:#8B5CF6;
+  --basketflow-pink:#EC4899;
+  --basketflow-orange:#F59E0B;
+  --basketflow-green:#10B981;
 }
 
 body{background:#f8fafc;color:#0f172a}
-.input{width:100%;border:1px solid #cbd5e1;border-radius:0.9rem;padding:0.85rem 1rem;outline:none;transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;background:white}
-.input:focus{border-color:var(--basketpilot-purple);box-shadow:0 0 0 4px rgba(91,46,255,.12)}
-.btn{border-radius:0.9rem;background:linear-gradient(135deg,var(--basketpilot-orange),var(--basketpilot-rose),var(--basketpilot-purple));color:white;padding:0.85rem 1.1rem;font-weight:800;box-shadow:0 12px 30px rgba(91,46,255,.18);transition:transform .15s ease, box-shadow .15s ease}
-.btn:hover{transform:translateY(-1px);box-shadow:0 16px 34px rgba(91,46,255,.24)}
-.btn-secondary{background:linear-gradient(135deg,var(--basketpilot-indigo),var(--basketpilot-purple))}
+.input{width:100%;border:1px solid #cbd5e1;border-radius:0.9rem;padding:0.85rem 1rem;outline:none;transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;background:white}
+.input:focus{border-color:var(--basketflow-cyan);box-shadow:0 0 0 4px rgba(6,182,212,.16)}
+.btn{border-radius:0.9rem;background:linear-gradient(135deg,var(--basketflow-cyan),var(--basketflow-blue),var(--basketflow-purple),var(--basketflow-pink));color:white;padding:0.85rem 1.1rem;font-weight:800;box-shadow:0 12px 30px rgba(37,99,235,.22);transition:transform .15s ease,box-shadow .15s ease}
+.btn:hover{transform:translateY(-1px);box-shadow:0 16px 36px rgba(139,92,246,.28)}
+.btn-secondary{background:linear-gradient(135deg,var(--basketflow-blue),var(--basketflow-purple),var(--basketflow-pink))}
 .label{font-size:.875rem;font-weight:800;color:#334155}
