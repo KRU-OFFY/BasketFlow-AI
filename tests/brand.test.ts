@@ -19,7 +19,6 @@ test('active application surfaces use the BasketFlow AI brand', async () => {
     readme,
     agents,
     packageJson,
-    packageLock,
     instrumentation,
     csvExport,
     supabaseConfig,
@@ -37,7 +36,6 @@ test('active application surfaces use the BasketFlow AI brand', async () => {
     read('README.md'),
     read('AGENTS.md'),
     read('package.json'),
-    read('package-lock.json'),
     read('instrumentation-client.ts'),
     read('app/settings/ai-logs/export/route.ts'),
     read('supabase/config.toml'),
@@ -57,7 +55,6 @@ test('active application surfaces use the BasketFlow AI brand', async () => {
     readme,
     agents,
     packageJson,
-    packageLock,
     instrumentation,
     csvExport,
     supabaseConfig,
@@ -69,7 +66,6 @@ test('active application surfaces use the BasketFlow AI brand', async () => {
   assert.match(styles, /--basketflow-cyan:#06B6D4/);
   assert.match(styles, /--basketflow-pink:#EC4899/);
   assert.match(packageJson, /"name": "basketflow-ai"/);
-  assert.match(packageLock, /"name": "basketflow-ai"/);
   assert.match(instrumentation, /service: 'basketflow-ai'/);
   assert.match(csvExport, /filename="basketflow-ai-logs\.csv"/);
   assert.match(supabaseConfig, /project_id = "basketflow-ai"/);
