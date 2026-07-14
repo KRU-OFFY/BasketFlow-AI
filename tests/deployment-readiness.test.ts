@@ -4,6 +4,7 @@ import test from 'node:test';
 import { evaluateDeploymentHealth } from '../lib/deployment/health.ts';
 
 const completeEnv: NodeJS.ProcessEnv = {
+  NODE_ENV: 'test',
   NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co',
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_example',
   SUPABASE_SERVICE_ROLE_KEY: 'service-role-placeholder',
